@@ -1,0 +1,30 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!--
+    Composed icon used for iOS + legacy Android launcher icon. Same design
+    as the adaptive fore/background layers stacked into one opaque bitmap.
+  -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="70%">
+      <stop offset="0%" stop-color="#241E19"/>
+      <stop offset="100%" stop-color="#14120F"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <path d="M512 288
+           C 612 288, 680 380, 680 500
+           C 680 626, 612 720, 512 720
+           C 412 720, 344 626, 344 500
+           C 344 380, 412 288, 512 288 Z"
+        fill="#E8DCC4"/>
+
+  <path d="M 512 232
+           A 268 268 0 1 1 322.5 690.5"
+        fill="none"
+        stroke="#B0648D"
+        stroke-width="38"
+        stroke-linecap="round"/>
+
+  <line x1="360" y1="512" x2="664" y2="512"
+        stroke="#F2EDE4" stroke-width="4" opacity="0.75" stroke-linecap="round"/>
+</svg>

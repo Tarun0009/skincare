@@ -1,0 +1,22 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!--
+    Monochrome variant for Android 13+ themed icons. Everything renders in
+    the launcher's tint colour, so we only draw silhouettes — no fills that
+    depend on the cream/mauve palette.
+  -->
+
+  <!-- Solid face silhouette in white; launcher recolours it. -->
+  <path d="M512 288
+           C 612 288, 680 380, 680 500
+           C 680 626, 612 720, 512 720
+           C 412 720, 344 626, 344 500
+           C 344 380, 412 288, 512 288 Z"
+        fill="#FFFFFF"/>
+
+  <path d="M 512 232
+           A 268 268 0 1 1 322.5 690.5"
+        fill="none"
+        stroke="#FFFFFF"
+        stroke-width="38"
+        stroke-linecap="round"/>
+</svg>

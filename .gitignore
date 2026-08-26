@@ -1,0 +1,97 @@
+# Dependencies
+node_modules/
+
+# Environment files and local configuration
+.env
+.env.*
+*.env
+*.env.*
+.envrc
+.npmrc
+.netrc
+.pypirc
+local.properties
+key.properties
+android/key.properties
+*.local
+
+# Secrets, credentials, and signing material
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.cer
+*.crt
+*.der
+*.jks
+*.keystore
+*.mobileprovision
+*.mobileconfig
+google-services.json
+GoogleService-Info.plist
+credentials*.json
+service-account*.json
+firebase-adminsdk*.json
+secrets*.json
+.sentryclirc
+sentry.properties
+
+# AI assistant instructions and private documents
+[Cc][Ll][Aa][Uu][Dd][Ee].[Mm][Dd]
+**/[Cc][Ll][Aa][Uu][Dd][Ee].[Mm][Dd]
+*.[Pp][Dd][Ff]
+
+# Build output and caches
+dist/
+build/
+coverage/
+.cache/
+.gradle/
+.cxx/
+android/.gradle/
+android/build/
+android/app/build/
+ios/build/
+DerivedData/
+*.apk
+*.aab
+*.ipa
+*.bundle
+*.map
+*.tsbuildinfo
+
+# Runtime-generated/private user data
+data/
+photos/
+uploads/
+tmp/
+temp/
+
+# Logs and diagnostics
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+hs_err_pid*
+
+# Test artifacts
+.nyc_output/
+test-results/
+junit.xml
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Xcode user state and CocoaPods
+ios/Pods/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcuserstate

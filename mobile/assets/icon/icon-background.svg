@@ -1,0 +1,13 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!--
+    Background layer for the adaptive icon. Radial glow behind the mark to
+    give it a hint of dimension without competing with the foreground.
+  -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="70%">
+      <stop offset="0%" stop-color="#241E19"/>
+      <stop offset="100%" stop-color="#14120F"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+</svg>
