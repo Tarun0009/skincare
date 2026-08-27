@@ -10,7 +10,6 @@ import {
   IconChevronRight,
   IconLock,
   Screen,
-  Skeleton,
   SkeletonCard,
   Text,
 } from '../../../ui/primitives';
@@ -73,7 +72,7 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
   const todayKey = useMemo(() => toDateKey(now), [now]);
   const doneToday = checks[todayKey] ?? [];
 
-  const { data: scanList, isLoading: isListLoading } = useListScansQuery();
+  const { data: scanList } = useListScansQuery();
   const latest = scanList?.scans[0];
   const { data: latestScan, isLoading: isScanLoading } = useGetScanQuery(latest?.id ?? '', {
     skip: !latest,
@@ -102,8 +101,9 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
     return Math.max(0, RESCAN_CYCLE_DAYS - daysSince);
   }, [latest, now]);
 
-  if (isListLoading) return <LoadingHome />;
-
+  // Render FirstRunHome immediately when there are no scans (including while
+  // the query is still in flight or if the server is unreachable). This keeps
+  // the CTA visible instead of pinning the user on a skeleton indefinitely.
   if (!scanList || scanList.scans.length === 0) {
     return <FirstRunHome greeting={g.label} userName={userName} navigation={navigation} today={now} />;
   }
@@ -271,31 +271,6 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
           )}
         </View>
       </ScrollView>
-    </Screen>
-  );
-}
-
-function LoadingHome() {
-  return (
-    <Screen edges={['top']} style={{ paddingHorizontal: spacing.xxl }}>
-      <Skeleton width="60%" height={14} />
-      <View style={{ height: spacing.md }} />
-      <Skeleton width="80%" height={36} />
-      <View style={{ height: spacing.xxl }} />
-      <View style={{ flexDirection: 'row', gap: 6 }}>
-        {Array.from({ length: 7 }).map((_, i) => (
-          <View key={i} style={{ flex: 1, gap: 8 }}>
-            <Skeleton height={12} />
-            <Skeleton height={34} radius={9} />
-          </View>
-        ))}
-      </View>
-      <View style={{ height: spacing.xxxl }} />
-      <View style={{ gap: 12 }}>
-        <SkeletonCard height={64} />
-        <SkeletonCard height={64} />
-        <SkeletonCard height={64} />
-      </View>
     </Screen>
   );
 }

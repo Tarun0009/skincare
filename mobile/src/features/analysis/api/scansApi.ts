@@ -24,6 +24,9 @@ export const scansApi = api.injectEndpoints({
           method: 'POST',
           body: form,
           formData: true,
+          // Image preparation + Gemini analysis legitimately takes longer
+          // than the short timeout used by ordinary list/detail requests.
+          timeout: 90_000,
         };
       },
       invalidatesTags: ['ScanList', 'Comparison'],

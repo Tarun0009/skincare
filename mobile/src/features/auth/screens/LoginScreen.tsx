@@ -1,38 +1,43 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
-import { useDispatch } from 'react-redux';
 import { Button, Input, Screen, Text } from '../../../ui/primitives';
 import { spacing } from '../../../ui/theme/tokens';
-import { useLoginMutation } from '../api/authApi';
-import { setCredentials } from '../state/authSlice';
+import { signInWithEmail, friendlyAuthError } from '../lib/firebase';
 import type { AuthScreenProps } from '../../../app/navigation/types';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
-  const dispatch = useDispatch();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [login, { isLoading, error }] = useLoginMutation();
+  const [touched, setTouched] = useState<{ email?: boolean; password?: boolean }>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [remoteError, setRemoteError] = useState<string | undefined>();
 
-  const continueAsGuest = () => {
-    dispatch(
-      setCredentials({
-        token: 'dev-guest-token',
-        userId: 'dev-guest',
-        email: 'guest@local',
-      })
-    );
-  };
+  const errors = useMemo(() => {
+    const e: { email?: string; password?: string } = {};
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) e.email = 'Email is required.';
+    else if (!EMAIL_RE.test(trimmedEmail)) e.email = 'Enter a valid email address.';
+    if (!password) e.password = 'Password is required.';
+    return e;
+  }, [email, password]);
 
-  const errorText =
-    error && 'data' in error && typeof error.data === 'object' && error.data
-      ? ((error.data as { message?: string }).message ?? 'Sign-in failed')
-      : error
-        ? 'Sign-in failed'
-        : undefined;
+  const isValid = !errors.email && !errors.password;
 
-  const submit = () => {
-    if (!email || !password) return;
-    login({ email: email.trim(), password });
+  const submit = async () => {
+    setTouched({ email: true, password: true });
+    if (!isValid) return;
+    setSubmitting(true);
+    setRemoteError(undefined);
+    try {
+      await signInWithEmail(email.trim(), password);
+      // AuthGate's listener flips auth state → RootNavigator swaps stacks.
+    } catch (e) {
+      setRemoteError(friendlyAuthError((e as { code?: string }).code));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -59,28 +64,36 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
               label="Email"
               value={email}
               onChangeText={setEmail}
+              onBlur={() => setTouched((t) => ({ ...t, email: true }))}
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
               placeholder="you@somewhere.com"
               returnKeyType="next"
+              errorText={touched.email ? errors.email : undefined}
             />
             <Input
               label="Password"
               value={password}
               onChangeText={setPassword}
+              onBlur={() => setTouched((t) => ({ ...t, password: true }))}
               secureTextEntry
+              passwordToggle
               autoComplete="password"
-              placeholder="At least 8 characters"
+              placeholder="Your password"
               returnKeyType="go"
               onSubmitEditing={submit}
-              errorText={errorText}
+              errorText={touched.password ? errors.password : undefined}
             />
+            {remoteError && (
+              <Text variant="caption" style={{ color: '#D4674A' }}>
+                {remoteError}
+              </Text>
+            )}
           </View>
 
           <View style={{ gap: spacing.lg }}>
-            <Button label="Sign in" loading={isLoading} onPress={submit} />
-            <Button label="Continue as guest" variant="secondary" onPress={continueAsGuest} />
+            <Button label="Sign in" loading={submitting} onPress={submit} disabled={submitting} />
             <Pressable
               onPress={() => navigation.navigate('Register')}
               style={{ alignSelf: 'center' }}

@@ -16,14 +16,27 @@ export const config = {
     model: process.env.GEMINI_MODEL ?? 'gemini-2.5-flash',
   },
 
-  auth: {
-    jwtSecret: required('JWT_SECRET'),
-    jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '30d',
+  firebase: {
+    // Either GOOGLE_APPLICATION_CREDENTIALS points at a service-account JSON
+    // and these three are ignored, or you set them individually (useful on
+    // hosted platforms that only expose env vars).
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY,
+  },
+
+  cloudinary: {
+    // Either CLOUDINARY_URL (single string with all creds baked in) or the
+    // three split fields. The SDK prefers CLOUDINARY_URL if present.
+    url: process.env.CLOUDINARY_URL,
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
+    folder: process.env.CLOUDINARY_FOLDER ?? 'selfcare/scans',
   },
 
   storage: {
     dbPath: process.env.DB_PATH ?? './data/selfcare.db',
-    photoDir: process.env.PHOTO_DIR ?? './photos',
     photoMaxBytes: Number(process.env.PHOTO_MAX_BYTES ?? 8 * 1024 * 1024),
   },
 } as const;

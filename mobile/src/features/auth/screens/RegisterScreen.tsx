@@ -1,38 +1,61 @@
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
-import { useDispatch } from 'react-redux';
+import { useMemo, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { Button, Input, Screen, Text } from '../../../ui/primitives';
 import { spacing } from '../../../ui/theme/tokens';
-import { useRegisterMutation } from '../api/authApi';
-import { setCredentials } from '../state/authSlice';
+import { createAccountWithEmail, friendlyAuthError } from '../lib/firebase';
 import type { AuthScreenProps } from '../../../app/navigation/types';
 
+const MIN_PASSWORD_LENGTH = 6;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+interface FieldErrors {
+  email?: string;
+  password?: string;
+  confirm?: string;
+}
+
 export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
-  const dispatch = useDispatch();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [register, { isLoading, error }] = useRegisterMutation();
+  const [confirm, setConfirm] = useState('');
+  const [touched, setTouched] = useState<{ email?: boolean; password?: boolean; confirm?: boolean }>(
+    {}
+  );
+  const [submitting, setSubmitting] = useState(false);
+  const [remoteError, setRemoteError] = useState<string | undefined>();
 
-  const continueAsGuest = () => {
-    dispatch(
-      setCredentials({
-        token: 'dev-guest-token',
-        userId: 'dev-guest',
-        email: 'guest@local',
-      })
-    );
-  };
+  const errors = useMemo<FieldErrors>(() => {
+    const e: FieldErrors = {};
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) e.email = 'Email is required.';
+    else if (!EMAIL_RE.test(trimmedEmail)) e.email = 'Enter a valid email address.';
 
-  const errorText =
-    error && 'data' in error && typeof error.data === 'object' && error.data
-      ? ((error.data as { message?: string }).message ?? 'Sign-up failed')
-      : error
-        ? 'Sign-up failed'
-        : undefined;
+    if (!password) e.password = 'Password is required.';
+    else if (password.length < MIN_PASSWORD_LENGTH)
+      e.password = `At least ${MIN_PASSWORD_LENGTH} characters.`;
 
-  const submit = () => {
-    if (!email || password.length < 8) return;
-    register({ email: email.trim(), password });
+    if (!confirm) e.confirm = 'Confirm your password.';
+    else if (confirm !== password) e.confirm = 'Passwords do not match.';
+
+    return e;
+  }, [email, password, confirm]);
+
+  const isValid = !errors.email && !errors.password && !errors.confirm;
+
+  const submit = async () => {
+    setTouched({ email: true, password: true, confirm: true });
+    if (!isValid) return;
+    setSubmitting(true);
+    setRemoteError(undefined);
+    try {
+      await createAccountWithEmail(email.trim(), password);
+      // onAuthStateChanged pushes the new user into Redux; RootNavigator swaps
+      // us onto the Quiz screen from there.
+    } catch (e) {
+      setRemoteError(friendlyAuthError((e as { code?: string }).code));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -41,7 +64,11 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
-        <View style={{ flex: 1, justifyContent: 'center', gap: spacing.xxl }}>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', gap: spacing.xxl }}
+        >
           <View style={{ gap: spacing.md }}>
             <Text variant="labelSm" tone="mauve" upper>
               Skin Analyzer
@@ -59,40 +86,62 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
               label="Email"
               value={email}
               onChangeText={setEmail}
+              onBlur={() => setTouched((t) => ({ ...t, email: true }))}
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
               placeholder="you@somewhere.com"
               returnKeyType="next"
+              errorText={touched.email ? errors.email : undefined}
             />
             <Input
               label="Password"
               value={password}
               onChangeText={setPassword}
+              onBlur={() => setTouched((t) => ({ ...t, password: true }))}
               secureTextEntry
+              passwordToggle
               autoComplete="password-new"
-              placeholder="At least 8 characters"
+              textContentType="newPassword"
+              placeholder="At least 6 characters"
+              returnKeyType="next"
+              errorText={touched.password ? errors.password : undefined}
+            />
+            <Input
+              label="Confirm password"
+              value={confirm}
+              onChangeText={setConfirm}
+              onBlur={() => setTouched((t) => ({ ...t, confirm: true }))}
+              secureTextEntry
+              passwordToggle
+              autoComplete="password-new"
+              textContentType="newPassword"
+              placeholder="Re-enter your password"
               returnKeyType="go"
               onSubmitEditing={submit}
-              errorText={errorText}
+              errorText={touched.confirm ? errors.confirm : undefined}
             />
+            {remoteError && (
+              <Text variant="caption" style={{ color: '#D4674A' }}>
+                {remoteError}
+              </Text>
+            )}
           </View>
 
           <View style={{ gap: spacing.lg }}>
             <Button
               label="Create account"
-              loading={isLoading}
+              loading={submitting}
               onPress={submit}
-              disabled={!email || password.length < 8}
+              disabled={!isValid || submitting}
             />
-            <Button label="Continue as guest" variant="secondary" onPress={continueAsGuest} />
             <Pressable onPress={() => navigation.goBack()} style={{ alignSelf: 'center' }}>
               <Text variant="label" tone="mauve">
                 I already have an account
               </Text>
             </Pressable>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );

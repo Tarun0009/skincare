@@ -28,13 +28,20 @@ export interface CapturedPhoto {
  */
 export function useCapture() {
   const cameraRef = useRef<Camera>(null);
+  const captureInFlight = useRef(false);
   const [status, setStatus] = useState<CaptureStatus>('idle');
   const [photo, setPhoto] = useState<CapturedPhoto | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const validate = useCallback(async (uri: string, fileName: string, type: string) => {
+  const validate = useCallback(async (
+    uri: string,
+    fileName: string,
+    type: string,
+    width?: number,
+    height?: number
+  ) => {
     setStatus('validating');
-    const faceCheck = await checkSelfie(uri);
+    const faceCheck = await checkSelfie(uri, { width, height });
     if (!faceCheck.ok) {
       setPhoto({ uri, fileName, type, faceCheck });
       setStatus('invalid');
@@ -45,7 +52,13 @@ export function useCapture() {
   }, []);
 
   const captureFromCamera = useCallback(async () => {
-    if (!cameraRef.current) return;
+    if (captureInFlight.current) return;
+    if (!cameraRef.current) {
+      setError('Camera is still starting. Please try again.');
+      return;
+    }
+    captureInFlight.current = true;
+    setError(null);
     setStatus('capturing');
     try {
       const p: PhotoFile = await cameraRef.current.takePhoto({
@@ -53,14 +66,18 @@ export function useCapture() {
         enableShutterSound: false,
       });
       const uri = p.path.startsWith('file://') ? p.path : `file://${p.path}`;
-      await validate(uri, `capture-${Date.now()}.jpg`, 'image/jpeg');
+      await validate(uri, `capture-${Date.now()}.jpg`, 'image/jpeg', p.width, p.height);
     } catch (e) {
-      setError((e as Error).message);
-      setStatus('idle');
+      const message = e instanceof Error ? e.message : 'Unable to capture photo.';
+      setError(message);
+      setStatus('ready');
+    } finally {
+      captureInFlight.current = false;
     }
   }, [validate]);
 
   const captureFromLibrary = useCallback(async () => {
+    setError(null);
     const ok = await permissions.photos();
     if (!ok) {
       setError('photo_permission_denied');
@@ -68,7 +85,19 @@ export function useCapture() {
     }
     const picked: PickedImage | null = await pickSelfieFromLibrary();
     if (!picked) return;
-    await validate(picked.uri, picked.fileName, picked.type);
+    try {
+      await validate(
+        picked.uri,
+        picked.fileName,
+        picked.type,
+        picked.width,
+        picked.height
+      );
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Unable to check this photo.';
+      setError(message);
+      setStatus('ready');
+    }
   }, [validate]);
 
   const persistLocally = useCallback(
@@ -81,6 +110,7 @@ export function useCapture() {
   );
 
   const reset = useCallback(() => {
+    captureInFlight.current = false;
     setPhoto(null);
     setError(null);
     setStatus('idle');

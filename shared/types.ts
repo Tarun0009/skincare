@@ -77,12 +77,6 @@ export interface Comparison {
   narrative: string;
 }
 
-export interface AuthResponse {
-  token: string;
-  userId: string;
-  email: string;
-}
-
 export const ALL_CONDITIONS: ConditionType[] = [
   'acne',
   'dryness',

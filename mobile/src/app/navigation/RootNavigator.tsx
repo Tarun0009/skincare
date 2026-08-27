@@ -14,7 +14,7 @@ import type { RootStackParamList } from './types';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
-  const isAuthed = useAppSelector((s) => Boolean(s.auth.token));
+  const isAuthed = useAppSelector((s) => Boolean(s.auth.uid));
   const onboardingComplete = useAppSelector((s) => s.onboarding.completed);
 
   return (

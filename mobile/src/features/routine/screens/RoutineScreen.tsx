@@ -23,11 +23,24 @@ export function RoutineScreen({ navigation }: TabScreenProps<'Routine'>) {
     [scan, tab]
   );
 
-  if (isListLoading || (latest && isScanLoading)) {
+  // Only skeleton while we have no cached result yet AND the query is in
+  // flight. Once we know there's no scan (or the query failed), fall through
+  // to the empty state instead of holding the user on a spinner.
+  if (isListLoading && !list) {
     return (
       <Screen edges={['top']} style={{ paddingHorizontal: spacing.xxl, gap: spacing.md }}>
         <SkeletonCard height={48} />
         <SkeletonCard height={80} />
+        <SkeletonCard height={80} />
+        <SkeletonCard height={80} />
+      </Screen>
+    );
+  }
+
+  if (!scan && latest && isScanLoading) {
+    return (
+      <Screen edges={['top']} style={{ paddingHorizontal: spacing.xxl, gap: spacing.md }}>
+        <SkeletonCard height={48} />
         <SkeletonCard height={80} />
         <SkeletonCard height={80} />
       </Screen>

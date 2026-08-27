@@ -12,10 +12,7 @@ const CAMERA: Permission = Platform.select({
   android: PERMISSIONS.ANDROID.CAMERA,
 }) as Permission;
 
-const PHOTOS: Permission = Platform.select({
-  ios: PERMISSIONS.IOS.PHOTO_LIBRARY,
-  android: PERMISSIONS.ANDROID.READ_MEDIA_IMAGES,
-}) as Permission;
+const PHOTOS: Permission = PERMISSIONS.IOS.PHOTO_LIBRARY;
 
 async function ensure(p: Permission): Promise<boolean> {
   const current = await check(p);
@@ -26,5 +23,6 @@ async function ensure(p: Permission): Promise<boolean> {
 
 export const permissions = {
   camera: () => ensure(CAMERA),
-  photos: () => ensure(PHOTOS),
+  // Android's system photo picker does not require storage permission.
+  photos: () => (Platform.OS === 'android' ? Promise.resolve(true) : ensure(PHOTOS)),
 };

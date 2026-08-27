@@ -1,15 +1,23 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
+/**
+ * Auth state mirrors the Firebase user. AuthGate subscribes to
+ * `onAuthStateChanged` and pushes the current user in here so the rest of the
+ * app (RTK Query, RootNavigator) can react synchronously.
+ *
+ * We deliberately don't cache tokens here — baseQuery pulls a fresh ID token
+ * from Firebase on every request via `getIdToken()`, so there's no stale-token
+ * problem to manage in Redux.
+ */
+
 export interface AuthState {
-  token: string | null;
-  userId: string | null;
+  uid: string | null;
   email: string | null;
   hydrated: boolean;
 }
 
 const initialState: AuthState = {
-  token: null,
-  userId: null,
+  uid: null,
   email: null,
   hydrated: false,
 };
@@ -18,32 +26,25 @@ export const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setCredentials(
+    setFirebaseUser(
       state,
-      action: PayloadAction<{ token: string; userId: string; email: string }>
-    ) {
-      state.token = action.payload.token;
-      state.userId = action.payload.userId;
-      state.email = action.payload.email;
-    },
-    hydrated(
-      state,
-      action: PayloadAction<{ token: string; userId: string; email: string } | null>
+      action: PayloadAction<{ uid: string; email: string | null } | null>
     ) {
       state.hydrated = true;
       if (action.payload) {
-        state.token = action.payload.token;
-        state.userId = action.payload.userId;
+        state.uid = action.payload.uid;
         state.email = action.payload.email;
+      } else {
+        state.uid = null;
+        state.email = null;
       }
     },
     logout(state) {
-      state.token = null;
-      state.userId = null;
+      state.uid = null;
       state.email = null;
     },
   },
 });
 
-export const { setCredentials, hydrated, logout } = authSlice.actions;
+export const { setFirebaseUser, logout } = authSlice.actions;
 export default authSlice.reducer;

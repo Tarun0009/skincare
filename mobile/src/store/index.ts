@@ -8,8 +8,8 @@ import adherenceReducer from '../features/adherence/state/adherenceSlice';
 import billingReducer from '../features/billing/state/billingSlice';
 
 // Feature endpoints must be imported for their injectEndpoints() call to run
-// before the store is created — otherwise hooks like useLoginMutation are undefined.
-import '../features/auth/api/authApi';
+// before the store is created — otherwise their generated hooks are undefined.
+// Auth endpoints were removed when we moved to Firebase; only scans left.
 import '../features/analysis/api/scansApi';
 
 export const store = configureStore({

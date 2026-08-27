@@ -6,13 +6,20 @@ node_modules/
 .env.*
 *.env
 *.env.*
+**/.env
+**/.env.*
+**/*.env
+**/*.env.*
 .envrc
+**/.envrc
 .npmrc
 .netrc
 .pypirc
 local.properties
 key.properties
 android/key.properties
+**/local.properties
+**/key.properties
 *.local
 
 # Secrets, credentials, and signing material
@@ -29,10 +36,19 @@ android/key.properties
 *.mobileprovision
 *.mobileconfig
 google-services.json
+**/google-services.json
 GoogleService-Info.plist
+**/GoogleService-Info.plist
 credentials*.json
 service-account*.json
+*service-account*.json
+firebase-service-account*.json
+**/firebase-service-account*.json
 firebase-adminsdk*.json
+*firebase-adminsdk*.json
+**/*firebase-adminsdk*.json
+firebase-debug.log
+**/firebase-debug.log
 secrets*.json
 .sentryclirc
 sentry.properties
@@ -40,7 +56,9 @@ sentry.properties
 # AI assistant instructions and private documents
 [Cc][Ll][Aa][Uu][Dd][Ee].[Mm][Dd]
 **/[Cc][Ll][Aa][Uu][Dd][Ee].[Mm][Dd]
+*.[Mm][Dd]
 *.[Pp][Dd][Ff]
+docs/SelfCare-Project-Documentation.html
 
 # Build output and caches
 dist/

@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
-import { Pressable, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AppState, Linking, Pressable, View } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { RadialGradient, Rect, Defs, Stop } from 'react-native-svg';
 import { Screen, Text } from '../../../ui/primitives';
@@ -9,20 +10,42 @@ import { Camera, useFrontCamera, useCameraPermissionState } from '../../../core/
 import type { TabScreenProps } from '../../../app/navigation/types';
 
 export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
-  const { hasPermission, requestPermission } = useCameraPermissionState();
+  const isFocused = useIsFocused();
+  const { hasPermission, permissionStatus, requestPermission } = useCameraPermissionState();
   const device = useFrontCamera();
+  const requestedPermission = useRef(false);
+  const [appState, setAppState] = useState(AppState.currentState);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraSession, setCameraSession] = useState(0);
   const {
     cameraRef,
     status,
     photo,
+    error: captureError,
     captureFromCamera,
     captureFromLibrary,
     reset,
   } = useCapture();
 
   useEffect(() => {
-    if (!hasPermission) requestPermission();
-  }, [hasPermission, requestPermission]);
+    const subscription = AppState.addEventListener('change', setAppState);
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    if (
+      isFocused &&
+      permissionStatus === 'not-determined' &&
+      !requestedPermission.current
+    ) {
+      requestedPermission.current = true;
+      void requestPermission();
+    }
+  }, [isFocused, permissionStatus, requestPermission]);
+
+  const cameraIsActive =
+    isFocused && appState === 'active' && hasPermission && device != null;
 
   useEffect(() => {
     if (status !== 'ready_to_upload' || !photo) return;
@@ -32,7 +55,37 @@ export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
     reset();
   }, [status, photo, reset, navigation]);
 
-  const hint = hintForStatus(status, photo);
+  const hint = cameraHint({
+    hasPermission,
+    hasDevice: device != null,
+    cameraReady,
+    cameraError,
+    captureError,
+    status,
+    photo,
+  });
+
+  const retryCamera = () => {
+    setCameraReady(false);
+    setCameraError(null);
+    setCameraSession((value) => value + 1);
+  };
+
+  const cameraLabel = cameraError
+    ? 'Camera error'
+    : status === 'capturing'
+      ? 'Taking photo'
+      : status === 'validating'
+        ? 'Checking photo'
+        : status === 'invalid'
+          ? 'Try another photo'
+          : status === 'ready_to_upload'
+            ? 'Photo ready'
+            : cameraReady
+              ? 'Camera ready'
+              : hasPermission
+                ? 'Opening camera'
+                : 'Permission needed';
 
   return (
     <Screen bleed background={palette.bgDeep}>
@@ -53,11 +106,35 @@ export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
 
       {hasPermission && device && (
         <Camera
+          key={`${device.id}-${cameraSession}`}
           ref={cameraRef}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.35 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
           device={device}
-          isActive
+          isActive={cameraIsActive}
           photo
+          onInitialized={() => {
+            setCameraError(null);
+          }}
+          onPreviewStarted={() => setCameraReady(true)}
+          onPreviewStopped={() => setCameraReady(false)}
+          onError={(error) => {
+            setCameraReady(false);
+            setCameraError(error.message);
+          }}
+        />
+      )}
+
+      {hasPermission && device && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(10, 9, 8, 0.42)',
+          }}
         />
       )}
 
@@ -93,12 +170,10 @@ export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
           >
             <View style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: palette.sage }} />
             <Text variant="tiny" tone="muted">
-              {photo ? 'Photo captured' : 'Face locked'}
+              {cameraLabel}
             </Text>
           </View>
-          <Text variant="labelLg" tone="muted">
-            Flash
-          </Text>
+          <View style={{ width: 50 }} />
         </View>
 
         {/* Face guide oval */}
@@ -144,7 +219,7 @@ export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
             <Dot left="50%" top={252} centered />
           </View>
           <Text variant="tiny" tone="faint" style={{ marginTop: spacing.xxl }}>
-            ML Kit · 68 landmarks
+            Face quality is checked after capture
           </Text>
         </View>
 
@@ -183,13 +258,40 @@ export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
           <Text variant="bodySm" tone="muted" align="center" style={{ maxWidth: 280 }}>
             {hint.helper}
           </Text>
-        </View>
-
-        {/* 3-angle stepper */}
-        <View style={{ marginTop: spacing.xxl, flexDirection: 'row', gap: 10 }}>
-          <AngleSlot label="Front" state={photo ? 'done' : 'active'} />
-          <AngleSlot label="Left 30°" state={photo ? 'active' : 'next'} />
-          <AngleSlot label="Right 30°" state="next" />
+          {!hasPermission && permissionStatus !== 'not-determined' && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open camera permission settings"
+              onPress={() => void Linking.openSettings()}
+              style={{
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                borderRadius: radii.pill,
+                backgroundColor: palette.cream,
+              }}
+            >
+              <Text variant="label" style={{ color: palette.bgDeep }}>
+                Open settings
+              </Text>
+            </Pressable>
+          )}
+          {hasPermission && cameraError && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Retry camera"
+              onPress={retryCamera}
+              style={{
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                borderRadius: radii.pill,
+                backgroundColor: palette.cream,
+              }}
+            >
+              <Text variant="label" style={{ color: palette.bgDeep }}>
+                Retry camera
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Bottom controls */}
@@ -223,7 +325,14 @@ export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
 
           <Pressable
             onPress={captureFromCamera}
-            disabled={status === 'capturing' || status === 'validating'}
+            disabled={
+              !cameraReady ||
+              !cameraIsActive ||
+              status === 'capturing' ||
+              status === 'validating'
+            }
+            accessibilityRole="button"
+            accessibilityLabel="Take scan photo"
             hitSlop={12}
           >
             <View
@@ -241,26 +350,14 @@ export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
                   flex: 1,
                   borderRadius: 999,
                   backgroundColor: palette.cream,
-                  opacity: status === 'capturing' ? 0.5 : 1,
+                  opacity:
+                    !cameraReady || status === 'capturing' || status === 'validating' ? 0.45 : 1,
                 }}
               />
             </View>
           </Pressable>
 
-          <View
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: 13,
-              backgroundColor: 'rgba(242,237,228,0.08)',
-              borderWidth: 1,
-              borderColor: palette.hairlineStrong,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Text style={{ color: palette.textMuted }}>↺</Text>
-          </View>
+          <View style={{ width: 52, height: 52 }} />
         </View>
       </SafeAreaView>
     </Screen>
@@ -286,34 +383,54 @@ function Dot({ left, right, top, centered }: { left?: number | string; right?: n
   );
 }
 
-function AngleSlot({ label, state }: { label: string; state: 'done' | 'active' | 'next' }) {
-  const style =
-    state === 'active'
-      ? { bg: 'rgba(232,220,196,0.14)', border: 'rgba(232,220,196,0.3)', text: palette.cream, sub: palette.textMuted, subLabel: 'Capturing' }
-      : state === 'done'
-        ? { bg: 'rgba(147,168,122,0.14)', border: 'rgba(147,168,122,0.3)', text: palette.sageSoft, sub: palette.sage, subLabel: 'Done' }
-        : { bg: 'rgba(242,237,228,0.05)', border: 'transparent', text: palette.textMuted, sub: palette.textFaint, subLabel: 'Next' };
-
-  return (
-    <View
-      style={{
-        flex: 1,
-        paddingVertical: 12,
-        borderRadius: radii.sm,
-        backgroundColor: style.bg,
-        borderWidth: 1,
-        borderColor: style.border,
-        alignItems: 'center',
-      }}
-    >
-      <Text variant="label" style={{ color: style.text }}>
-        {label}
-      </Text>
-      <Text variant="tiny" style={{ color: style.sub, marginTop: 5 }}>
-        {style.subLabel}
-      </Text>
-    </View>
-  );
+function cameraHint({
+  hasPermission,
+  hasDevice,
+  cameraReady,
+  cameraError,
+  captureError,
+  status,
+  photo,
+}: {
+  hasPermission: boolean;
+  hasDevice: boolean;
+  cameraReady: boolean;
+  cameraError: string | null;
+  captureError: string | null;
+  status: ReturnType<typeof useCapture>['status'];
+  photo: ReturnType<typeof useCapture>['photo'];
+}): { chips: { tone: 'ok' | 'warn'; text: string }[]; helper: string } {
+  if (!hasPermission) {
+    return {
+      chips: [{ tone: 'warn', text: 'Camera access needed' }],
+      helper: 'Allow camera access to take a scan, or choose a photo from your library.',
+    };
+  }
+  if (!hasDevice) {
+    return {
+      chips: [{ tone: 'warn', text: 'Front camera unavailable' }],
+      helper: 'This device has no usable front camera. You can still choose a photo.',
+    };
+  }
+  if (cameraError) {
+    return {
+      chips: [{ tone: 'warn', text: 'Camera could not start' }],
+      helper: cameraError,
+    };
+  }
+  if (captureError) {
+    return {
+      chips: [{ tone: 'warn', text: 'Photo was not captured' }],
+      helper: captureError,
+    };
+  }
+  if (!cameraReady) {
+    return {
+      chips: [{ tone: 'ok', text: 'Starting camera' }],
+      helper: 'The preview will be ready in a moment.',
+    };
+  }
+  return hintForStatus(status, photo);
 }
 
 function hintForStatus(
@@ -342,10 +459,7 @@ function hintForStatus(
     };
   }
   return {
-    chips: [
-      { tone: 'warn', text: 'Move toward a window' },
-      { tone: 'ok', text: 'No makeup detected' },
-    ],
-    helper: 'Hold steady and look straight ahead. Neutral expression works best.',
+    chips: [{ tone: 'ok', text: 'Camera ready' }],
+    helper: 'Center one face in the guide, use even lighting, and look straight ahead.',
   };
 }

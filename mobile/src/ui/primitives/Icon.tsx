@@ -136,6 +136,46 @@ export function IconUser({ size = 20, color = palette.text }: Props) {
   );
 }
 
+export function IconEye({ size = 20, color = palette.textMuted }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"
+        stroke={color}
+        strokeWidth={1.6}
+        strokeLinejoin="round"
+      />
+      <Circle cx={12} cy={12} r={3} stroke={color} strokeWidth={1.6} />
+    </Svg>
+  );
+}
+
+export function IconEyeOff({ size = 20, color = palette.textMuted }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 3l18 18"
+        stroke={color}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M10.6 6.1A9.9 9.9 0 0112 6c6.5 0 10 6 10 6a17.5 17.5 0 01-3.3 4.1M6.1 6.9A17.6 17.6 0 002 12s3.5 6 10 6a9.9 9.9 0 004.6-1.1"
+        stroke={color}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M9.9 9.9a3 3 0 004.2 4.2"
+        stroke={color}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 export function IconCheck({ size = 12, color = palette.bg }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

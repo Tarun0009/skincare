@@ -2,7 +2,6 @@ import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { config } from '../config.js';
 import { buildAnalysisPrompt, SKIN_ANALYSIS_SYSTEM } from '../prompts/skin-analysis.js';
 import { buildComparisonPrompt, COMPARISON_SYSTEM } from '../prompts/comparison.js';
-import { photoAsInlineData } from '../storage/photos.js';
 import type { Routine, SkinAnalysis, Comparison } from '../../../shared/types.js';
 
 const client = new GoogleGenerativeAI(config.gemini.apiKey);
@@ -94,7 +93,7 @@ export interface AnalyzeResult {
 }
 
 export async function analyzeSelfie(
-  photoRelativePath: string,
+  photo: Buffer,
   opts: { previousBaselineSummary?: string } = {}
 ): Promise<AnalyzeResult> {
   const model = client.getGenerativeModel({
@@ -107,12 +106,17 @@ export async function analyzeSelfie(
     },
   });
 
-  const image = await photoAsInlineData(photoRelativePath);
-
-  const result = await model.generateContent([
-    { text: buildAnalysisPrompt(opts) },
-    { inlineData: image },
-  ]);
+  const result = await withTransientRetry(() =>
+    model.generateContent([
+      { text: buildAnalysisPrompt(opts) },
+      {
+        inlineData: {
+          mimeType: 'image/jpeg',
+          data: photo.toString('base64'),
+        },
+      },
+    ])
+  );
 
   const raw = result.response.text();
   return JSON.parse(raw) as AnalyzeResult;
@@ -135,15 +139,17 @@ export async function compareScans(opts: {
     },
   });
 
-  const result = await model.generateContent([
-    {
-      text: buildComparisonPrompt({
-        baselineAnalysisJson: JSON.stringify(opts.baselineAnalysis),
-        currentAnalysisJson: JSON.stringify(opts.currentAnalysis),
-        daysBetween: opts.daysBetween,
-      }),
-    },
-  ]);
+  const result = await withTransientRetry(() =>
+    model.generateContent([
+      {
+        text: buildComparisonPrompt({
+          baselineAnalysisJson: JSON.stringify(opts.baselineAnalysis),
+          currentAnalysisJson: JSON.stringify(opts.currentAnalysis),
+          daysBetween: opts.daysBetween,
+        }),
+      },
+    ])
+  );
 
   const parsed = JSON.parse(result.response.text()) as {
     improvementScore: number;
@@ -158,4 +164,36 @@ export async function compareScans(opts: {
     perConditionDelta: parsed.perConditionDelta,
     narrative: parsed.narrative,
   };
+}
+
+async function withTransientRetry<T>(operation: () => Promise<T>): Promise<T> {
+  const delaysMs = [750, 1_500];
+
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (attempt >= delaysMs.length || !isTransientGeminiError(error)) throw error;
+      await delay(delaysMs[attempt]!);
+    }
+  }
+}
+
+function isTransientGeminiError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const value = error as { status?: number; statusText?: string; message?: string };
+  if (value.status === 429 || (value.status != null && value.status >= 500)) return true;
+
+  const message = `${value.statusText ?? ''} ${value.message ?? ''}`.toLowerCase();
+  return (
+    message.includes('429') ||
+    message.includes('503') ||
+    message.includes('overloaded') ||
+    message.includes('high demand') ||
+    message.includes('temporarily unavailable')
+  );
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

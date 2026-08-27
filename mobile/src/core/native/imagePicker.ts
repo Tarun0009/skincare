@@ -9,6 +9,8 @@ export interface PickedImage {
   fileName: string;
   type: string;
   fileSize: number;
+  width?: number;
+  height?: number;
 }
 
 /**
@@ -32,5 +34,7 @@ export async function pickSelfieFromLibrary(): Promise<PickedImage | null> {
     fileName: asset.fileName ?? `selfie-${Date.now()}.jpg`,
     type: asset.type ?? 'image/jpeg',
     fileSize: asset.fileSize ?? 0,
+    width: asset.width,
+    height: asset.height,
   };
 }

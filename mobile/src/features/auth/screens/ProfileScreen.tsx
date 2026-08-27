@@ -14,9 +14,9 @@ import {
 } from '../../../ui/primitives';
 import { palette, spacing } from '../../../ui/theme/tokens';
 import { useAppSelector } from '../../../core/hooks/redux';
-import { secureStorage } from '../../../core/storage/secure';
 import { scanFileStore } from '../../../core/native/fs';
 import { logout } from '../state/authSlice';
+import { signOutCurrentUser } from '../lib/firebase';
 import { setPreference } from '../../preferences/state/preferencesSlice';
 import { computeStreak } from '../../adherence/state/adherenceSlice';
 import { useListScansQuery } from '../../analysis/api/scansApi';
@@ -49,7 +49,7 @@ export function ProfileScreen({ navigation }: TabScreenProps<'Profile'>) {
   }, [scans.length]);
 
   const doLogout = async () => {
-    await secureStorage.clearAuth();
+    await signOutCurrentUser().catch(() => undefined);
     dispatch(logout());
   };
 

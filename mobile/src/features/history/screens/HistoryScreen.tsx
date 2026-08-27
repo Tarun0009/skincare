@@ -19,7 +19,7 @@ export function HistoryScreen(_props: TabScreenProps<'History'>) {
   const { data: list, isLoading: isListLoading } = useListScansQuery();
   const { data: comparison, isLoading: isComparisonLoading } = useCompareLatestQuery();
 
-  const scans = list?.scans ?? [];
+  const scans = useMemo(() => list?.scans ?? [], [list?.scans]);
   const weeksBetween = useMemo(() => {
     const first = scans[scans.length - 1];
     const last = scans[0];

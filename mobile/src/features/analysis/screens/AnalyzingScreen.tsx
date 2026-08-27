@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, View } from 'react-native';
+import { Animated, Easing, Pressable, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { CircleIcon, IconCheck, IconLock, Screen, Text } from '../../../ui/primitives';
+import { Button, CircleIcon, IconCheck, IconLock, Screen, Text } from '../../../ui/primitives';
 import { palette, radii, spacing } from '../../../ui/theme/tokens';
 import { scanFileStore } from '../../../core/native/fs';
 import { useCreateScanMutation } from '../api/scansApi';
@@ -33,6 +33,8 @@ export function AnalyzingScreen({ route, navigation }: RootScreenProps<'Analyzin
   const [createScan] = useCreateScanMutation();
   const [activeStep, setActiveStep] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+  const [attempt, setAttempt] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const startedAt = useRef(Date.now()).current;
   const spin = useRef(new Animated.Value(0)).current;
 
@@ -59,6 +61,7 @@ export function AnalyzingScreen({ route, navigation }: RootScreenProps<'Analyzin
   // the mutation resolves, then routine flips to done.
   useEffect(() => {
     setActiveStep(2);
+    setUploadError(null);
     let cancelled = false;
     (async () => {
       try {
@@ -67,14 +70,16 @@ export function AnalyzingScreen({ route, navigation }: RootScreenProps<'Analyzin
         await scanFileStore.saveFromUri(scan.id, photo.uri);
         setActiveStep(4);
         navigation.replace('ScanResult', { scanId: scan.id });
-      } catch {
-        if (!cancelled) navigation.goBack();
+      } catch (error) {
+        if (!cancelled) {
+          setUploadError(messageForScanError(error));
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [createScan, navigation, photo]);
+  }, [attempt, createScan, navigation, photo]);
 
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const elapsedLabel = useMemo(() => {
@@ -195,6 +200,23 @@ export function AnalyzingScreen({ route, navigation }: RootScreenProps<'Analyzin
         })}
       </View>
 
+      {uploadError && (
+        <View style={{ gap: spacing.md, marginBottom: spacing.xl }}>
+          <Text variant="bodySm" tone="coral" align="center">
+            {uploadError}
+          </Text>
+          <Button
+            label="Try analysis again"
+            onPress={() => setAttempt((value) => value + 1)}
+          />
+          <Pressable onPress={() => navigation.goBack()} style={{ alignSelf: 'center' }}>
+            <Text variant="label" tone="muted">
+              Retake photo
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
       <View
         style={{
           padding: 15,
@@ -209,10 +231,33 @@ export function AnalyzingScreen({ route, navigation }: RootScreenProps<'Analyzin
           <IconLock />
         </View>
         <Text variant="caption" tone="dim" style={{ flex: 1 }}>
-          Images are sent for analysis over TLS and are not retained by the model provider.
-          Originals stay on your device.
+          Your photo is sent to the analysis service. A local copy is kept in app-private
+          storage after a successful scan.
         </Text>
       </View>
     </Screen>
   );
+}
+
+function messageForScanError(error: unknown): string {
+  if (typeof error !== 'object' || error === null) {
+    return 'The scan could not be analyzed. Please try again.';
+  }
+  const value = error as { status?: number | string; error?: string; data?: { error?: string } };
+  if (value.status === 'TIMEOUT_ERROR') {
+    return 'Analysis took too long. Check your connection and try again.';
+  }
+  if (value.status === 'FETCH_ERROR') {
+    return 'The analysis server could not be reached. Check your connection and try again.';
+  }
+  if (value.status === 401) {
+    return 'Your session expired. Sign in again, then retry the scan.';
+  }
+  if (value.status === 413) {
+    return 'This photo is too large. Retake it or choose a smaller image.';
+  }
+  if (value.status === 503) {
+    return 'The analysis service is busy right now. Please try again in a moment.';
+  }
+  return value.data?.error ?? value.error ?? 'The scan could not be analyzed. Please try again.';
 }
