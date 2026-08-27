@@ -9,7 +9,7 @@ const dev: Env = {
 };
 
 const prod: Env = {
-  apiBaseUrl: 'https://api.selfcare.example.com',
+  apiBaseUrl: 'https://selfcare-server.onrender.com/',
 };
 
 export const env: Env = __DEV__ ? dev : prod;
