@@ -1,0 +1,41 @@
+# Render Blueprint — deploys the Fastify server on the free web-service tier.
+# On first import to Render, this creates the service with all the right build
+# and runtime settings. Env vars marked `sync: false` must be pasted in the
+# Render dashboard after import (they hold secrets we don't want in git).
+#
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: selfcare-server
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: CLOUDINARY_FOLDER
+        value: selfcare/scans
+      - key: PHOTO_MAX_BYTES
+        value: "8388608"
+      # Secrets — set these in Render → Environment tab. sync:false tells the
+      # Blueprint importer not to try to seed them.
+      - key: DATABASE_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false

@@ -36,7 +36,9 @@ export const config = {
   },
 
   storage: {
-    dbPath: process.env.DB_PATH ?? './data/selfcare.db',
+    // Postgres connection string. For Neon paste the "Pooled" URL from
+    // Dashboard → Connection Details — it includes `?sslmode=require`.
+    databaseUrl: required('DATABASE_URL'),
     photoMaxBytes: Number(process.env.PHOTO_MAX_BYTES ?? 8 * 1024 * 1024),
   },
 } as const;

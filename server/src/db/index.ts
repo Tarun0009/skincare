@@ -1,20 +1,25 @@
-import Database from 'better-sqlite3';
-import { mkdirSync, readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { Pool } from 'pg';
 import { config } from '../config.js';
 
-mkdirSync(dirname(config.storage.dbPath), { recursive: true });
+/**
+ * Single shared connection pool. Repos import `pool` and use `pool.query()`
+ * directly — no prepared-statement bookkeeping like better-sqlite3 needed
+ * because pg parses on the server and caches internally.
+ *
+ * Schema is applied by `db/migrate.ts` on server boot (see server.ts). We do
+ * NOT apply it at module-import time because pg is async and the schema call
+ * would return an unresolved Promise before repo modules that follow start
+ * using the pool.
+ */
+export const pool = new Pool({
+  connectionString: config.storage.databaseUrl,
+  // Neon requires SSL. Local Postgres usually doesn't. `sslmode=require` in
+  // the URL already handles Neon; this keeps the pool tolerant of self-signed
+  // certs in dev without needing per-env config.
+  ssl: config.storage.databaseUrl.includes('sslmode=require')
+    ? { rejectUnauthorized: false }
+    : undefined,
+  max: 10,
+});
 
-export const db = new Database(config.storage.dbPath);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-
-// Repositories prepare statements as soon as their modules are imported, so
-// the schema must exist as part of database module initialization. Doing this
-// later in server.ts is too late because ESM evaluates static imports first.
-const here = dirname(fileURLToPath(import.meta.url));
-const schema = readFileSync(resolve(here, 'schema.sql'), 'utf8');
-db.exec(schema);
-
-export type DB = typeof db;
+export type DB = typeof pool;

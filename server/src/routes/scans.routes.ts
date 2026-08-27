@@ -23,13 +23,13 @@ export async function scanRoutes(app: FastifyInstance) {
   app.get('/scans', async (req) => {
     const userId = req.firebaseUser!.uid;
     const limit = Math.min(Number((req.query as { limit?: string }).limit ?? 50), 200);
-    return { scans: scansService.list(userId, limit) };
+    return { scans: await scansService.list(userId, limit) };
   });
 
   app.get('/scans/:id', async (req, reply) => {
     const userId = req.firebaseUser!.uid;
     const { id } = req.params as { id: string };
-    const scan = scansService.get(userId, id);
+    const scan = await scansService.get(userId, id);
     if (!scan) return reply.code(404).send({ error: 'not_found' });
     return scan;
   });

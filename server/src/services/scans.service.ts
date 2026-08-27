@@ -11,13 +11,14 @@ import { analyzeSelfie, compareScans } from './gemini.js';
 import type { Comparison, Scan, ScanSummary } from '../../../shared/types.js';
 
 function toScan(row: ScanRow): Scan {
+  // pg with JSONB returns already-parsed objects, so no JSON.parse here.
   return {
     id: row.id,
     userId: row.user_id,
     photoUrl: cloudinaryFullUrl(row.photo_public_id),
     createdAt: row.created_at,
-    analysis: JSON.parse(row.analysis_json),
-    routine: JSON.parse(row.routine_json),
+    analysis: row.analysis_json,
+    routine: row.routine_json,
   };
 }
 
@@ -49,10 +50,8 @@ export const scansService = {
   async create(userId: string, photo: Buffer): Promise<Scan> {
     const scanId = nanoid();
     const prepared = await prepareForUpload(photo);
-    const baseline = scansRepo.findBaseline(userId);
-    const previousBaselineSummary = baseline
-      ? (JSON.parse(baseline.analysis_json).summary as string)
-      : undefined;
+    const baseline = await scansRepo.findBaseline(userId);
+    const previousBaselineSummary = baseline?.analysis_json.summary;
 
     const { analysis, routine } = await analyzeSelfie(prepared, {
       previousBaselineSummary,
@@ -64,7 +63,7 @@ export const scansService = {
       ? await uploadPhotoToCloudinary(prepared, { userId, scanId })
       : null;
 
-    scansRepo.insert({
+    await scansRepo.insert({
       id: scanId,
       userId,
       photoPublicId: uploaded?.publicId ?? '',
@@ -72,27 +71,30 @@ export const scansService = {
       routine,
     });
 
-    const row = scansRepo.findById(scanId, userId);
+    const row = await scansRepo.findById(scanId, userId);
     if (!row) throw new Error('scan not found after insert');
     return toScan(row);
   },
 
-  get(userId: string, scanId: string): Scan | null {
-    const row = scansRepo.findById(scanId, userId);
+  async get(userId: string, scanId: string): Promise<Scan | null> {
+    const row = await scansRepo.findById(scanId, userId);
     return row ? toScan(row) : null;
   },
 
-  list(userId: string, limit = 50): ScanSummary[] {
-    return scansRepo.listByUser(userId, limit).map(toSummary);
+  async list(userId: string, limit = 50): Promise<ScanSummary[]> {
+    const rows = await scansRepo.listByUser(userId, limit);
+    return rows.map(toSummary);
   },
 
   async compareLatestToBaseline(userId: string): Promise<Comparison | null> {
-    const baseline = scansRepo.findBaseline(userId);
-    const latest = scansRepo.findLatest(userId);
+    const [baseline, latest] = await Promise.all([
+      scansRepo.findBaseline(userId),
+      scansRepo.findLatest(userId),
+    ]);
     if (!baseline || !latest || baseline.id === latest.id) return null;
 
-    const baselineAnalysis = JSON.parse(baseline.analysis_json);
-    const currentAnalysis = JSON.parse(latest.analysis_json);
+    const baselineAnalysis = baseline.analysis_json;
+    const currentAnalysis = latest.analysis_json;
 
     const daysBetween = Math.max(
       1,
