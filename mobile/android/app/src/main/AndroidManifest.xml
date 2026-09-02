@@ -3,6 +3,14 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
 
+    <!-- Local routine reminders (AM + PM). POST_NOTIFICATIONS is required
+         on Android 13+; SCHEDULE_EXACT_ALARM keeps our trigger firing on
+         the exact minute the user picked. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <!-- The photo-library fallback keeps the app usable on devices without a camera. -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.front" android:required="false" />

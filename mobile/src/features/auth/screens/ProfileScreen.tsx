@@ -17,10 +17,28 @@ import { useAppSelector } from '../../../core/hooks/redux';
 import { scanFileStore } from '../../../core/native/fs';
 import { logout } from '../state/authSlice';
 import { signOutCurrentUser } from '../lib/firebase';
-import { setPreference } from '../../preferences/state/preferencesSlice';
-import { computeStreak } from '../../adherence/state/adherenceSlice';
+import { useDeleteAccountMutation } from '../api/accountApi';
+import { setPreference, setReminderTime } from '../../preferences/state/preferencesSlice';
+import { useReminderSync } from '../../preferences/hooks/useReminderSync';
+import { ReminderTimeRow } from '../../preferences/components/ReminderTimeRow';
+import { cancelAll as cancelReminders } from '../../../core/notifications/reminders';
+import { computeStreak, resetAdherence } from '../../adherence/state/adherenceSlice';
 import { useListScansQuery } from '../../analysis/api/scansApi';
 import type { TabScreenProps } from '../../../app/navigation/types';
+
+const AM_PRESETS = [
+  { hour: 7, minute: 0, label: '7:00 AM' },
+  { hour: 8, minute: 0, label: '8:00 AM' },
+  { hour: 9, minute: 0, label: '9:00 AM' },
+  { hour: 10, minute: 0, label: '10:00 AM' },
+] as const;
+
+const PM_PRESETS = [
+  { hour: 20, minute: 0, label: '8:00 PM' },
+  { hour: 21, minute: 0, label: '9:00 PM' },
+  { hour: 22, minute: 0, label: '10:00 PM' },
+  { hour: 23, minute: 0, label: '11:00 PM' },
+] as const;
 
 export function ProfileScreen({ navigation }: TabScreenProps<'Profile'>) {
   const dispatch = useDispatch();
@@ -29,6 +47,8 @@ export function ProfileScreen({ navigation }: TabScreenProps<'Profile'>) {
   const billing = useAppSelector((s) => s.billing);
   const checks = useAppSelector((s) => s.adherence.checks);
   const { data: list, isLoading: isListLoading } = useListScansQuery();
+  const [deleteAccount, deleteAccountState] = useDeleteAccountMutation();
+  const { setEnabled: setRemindersEnabled } = useReminderSync();
 
   const scans = list?.scans ?? [];
   const streak = useMemo(() => computeStreak(checks, new Date()), [checks]);
@@ -51,10 +71,48 @@ export function ProfileScreen({ navigation }: TabScreenProps<'Profile'>) {
   const doLogout = async () => {
     await signOutCurrentUser().catch(() => undefined);
     dispatch(logout());
+    // Wipe local adherence so the next signed-in user hydrates from their
+    // own server snapshot, not the previous session's checks.
+    dispatch(resetAdherence());
+    // Also drop any scheduled reminders — they belong to the previous user.
+    await cancelReminders().catch(() => undefined);
   };
 
   const totalPhotos = photosOnDevice?.count ?? 0;
   const photosSizeLabel = photosOnDevice ? formatBytes(photosOnDevice.bytes) : null;
+
+  const doDeleteAccount = () => {
+    Alert.alert(
+      'Delete your account?',
+      'This erases every scan, routine and photo across our servers and Cloudinary, then removes your login. It cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete account',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAccount().unwrap();
+              // Server already dropped the Firebase user, so sign-out is a
+              // local cleanup that revokes the cached ID token. It'll fail
+              // silently if Firebase reports "user-not-found" — that's fine.
+              await signOutCurrentUser().catch(() => undefined);
+              dispatch(logout());
+              dispatch(resetAdherence());
+              await cancelReminders().catch(() => undefined);
+              // No manual navigation: RootNavigator switches to AuthStack
+              // when auth.uid clears.
+            } catch {
+              Alert.alert(
+                'Could not delete your account',
+                'Something went wrong on our side. Please try again in a moment. If it keeps failing, sign out and reach out to support.'
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const wipePhotos = () => {
     Alert.alert(
@@ -186,6 +244,53 @@ export function ProfileScreen({ navigation }: TabScreenProps<'Profile'>) {
           </Card>
         </View>
 
+        {/* Reminders */}
+        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xxl }}>
+          <Text variant="labelSm" tone="dim" upper style={{ marginBottom: spacing.md }}>
+            Reminders
+          </Text>
+          <Card padding={0}>
+            <ToggleRow
+              title="Routine reminders"
+              body="Daily AM + PM notifications to check off your steps"
+              value={preferences.remindersEnabled}
+              onChange={async (v) => {
+                const ok = await setRemindersEnabled(v);
+                if (!ok && v) {
+                  Alert.alert(
+                    'Notifications are off',
+                    'Enable notifications for SelfCare in your device settings to receive routine reminders.'
+                  );
+                }
+              }}
+            />
+            {preferences.remindersEnabled && (
+              <>
+                <Divider />
+                <ReminderTimeRow
+                  title="Morning"
+                  presets={AM_PRESETS}
+                  selectedHour={preferences.amHour}
+                  selectedMinute={preferences.amMinute}
+                  onSelect={(hour, minute) =>
+                    dispatch(setReminderTime({ slot: 'am', hour, minute }))
+                  }
+                />
+                <Divider />
+                <ReminderTimeRow
+                  title="Evening"
+                  presets={PM_PRESETS}
+                  selectedHour={preferences.pmHour}
+                  selectedMinute={preferences.pmMinute}
+                  onSelect={(hour, minute) =>
+                    dispatch(setReminderTime({ slot: 'pm', hour, minute }))
+                  }
+                />
+              </>
+            )}
+          </Card>
+        </View>
+
         {/* Subscription */}
         <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xxl }}>
           <Text variant="labelSm" tone="dim" upper style={{ marginBottom: spacing.md }}>
@@ -205,6 +310,19 @@ export function ProfileScreen({ navigation }: TabScreenProps<'Profile'>) {
         <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xxl }}>
           <Card padding={0}>
             <LinkRow title="Sign out" destructive onPress={doLogout} />
+          </Card>
+        </View>
+
+        {/* Delete account — separated so it doesn't feel adjacent to the
+            benign "Sign out" affordance. */}
+        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xxl }}>
+          <Card padding={0}>
+            <LinkRow
+              title={deleteAccountState.isLoading ? 'Deleting your account…' : 'Delete account'}
+              body="Erases every scan, routine and photo from our servers and removes your login."
+              destructive
+              onPress={deleteAccountState.isLoading ? undefined : doDeleteAccount}
+            />
           </Card>
         </View>
 

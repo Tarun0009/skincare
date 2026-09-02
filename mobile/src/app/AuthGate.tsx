@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { subscribeToAuthState } from '../features/auth/lib/firebase';
 import { setFirebaseUser } from '../features/auth/state/authSlice';
 import { useAppDispatch, useAppSelector } from '../core/hooks/redux';
+import { ReminderBootstrap } from '../features/preferences/components/ReminderBootstrap';
 import { SplashScreen } from './SplashScreen';
 
 /**
@@ -23,5 +24,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }, [dispatch]);
 
   if (!isHydrated) return <SplashScreen />;
-  return <>{children}</>;
+  return (
+    <>
+      <ReminderBootstrap />
+      {children}
+    </>
+  );
 }

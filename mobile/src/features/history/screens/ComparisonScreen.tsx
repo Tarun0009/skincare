@@ -1,18 +1,33 @@
 import { ScrollView, View } from 'react-native';
 import { Card, Screen, Skeleton, SkeletonCard, Text } from '../../../ui/primitives';
 import { spacing } from '../../../ui/theme/tokens';
-import { useCompareLatestQuery } from '../../analysis/api/scansApi';
+import { useCompareLatestQuery, useGetScanQuery } from '../../analysis/api/scansApi';
+import { BeforeAfterPanel } from '../../analysis/components/BeforeAfterPanel';
 import { CONDITION_LABEL, type ConditionType } from '@shared/types';
 import type { RootScreenProps } from '../../../app/navigation/types';
 
+function formatShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
+
 export function ComparisonScreen(_props: RootScreenProps<'Comparison'>) {
   const { data, isLoading, error } = useCompareLatestQuery();
+
+  // Both queries are keyed by scan ID and RTK Query dedupes, so if the user
+  // already viewed either scan from another screen they hit the cache here.
+  const { data: baseline } = useGetScanQuery(data?.baselineScanId ?? '', {
+    skip: !data?.baselineScanId,
+  });
+  const { data: latest } = useGetScanQuery(data?.currentScanId ?? '', {
+    skip: !data?.currentScanId,
+  });
 
   if (isLoading) {
     return (
       <Screen edges={['top']} style={{ paddingHorizontal: spacing.xxl, gap: spacing.lg }}>
         <Skeleton width="60%" height={30} />
         <Skeleton width="90%" height={16} />
+        <SkeletonCard height={222} />
         <SkeletonCard height={110} />
         <SkeletonCard height={200} />
       </Screen>
@@ -34,6 +49,23 @@ export function ComparisonScreen(_props: RootScreenProps<'Comparison'>) {
           <Text variant="body" tone="muted">
             {data.narrative}
           </Text>
+
+          {baseline && latest ? (
+            <BeforeAfterPanel
+              before={{
+                photoUrl: baseline.photoUrl,
+                dateLabel: formatShortDate(baseline.createdAt),
+                scoreLabel: String(baseline.analysis.overallScore),
+              }}
+              after={{
+                photoUrl: latest.photoUrl,
+                dateLabel: formatShortDate(latest.createdAt),
+                scoreLabel: String(latest.analysis.overallScore),
+              }}
+            />
+          ) : (
+            <SkeletonCard height={222} />
+          )}
 
           <Card padding={16}>
             <Text variant="labelSm" tone="dim" upper style={{ marginBottom: spacing.sm }}>

@@ -1,16 +1,22 @@
 import { api } from '../../../core/http/api';
-import type { Comparison, Scan, ScanSummary } from '@shared/types';
+import type { Comparison, OnboardingContext, Scan, ScanSummary } from '@shared/types';
 
 interface UploadArgs {
   uri: string;
   fileName: string;
   type: string;
+  /**
+   * Optional user context from the onboarding quiz. When present the server
+   * folds it into the analysis prompt so the routine matches the user's
+   * self-reported skin type, sensitivity, SPF habit and goals.
+   */
+  onboarding?: OnboardingContext;
 }
 
 export const scansApi = api.injectEndpoints({
   endpoints: (build) => ({
     createScan: build.mutation<Scan, UploadArgs>({
-      query: ({ uri, fileName, type }) => {
+      query: ({ uri, fileName, type, onboarding }) => {
         const form = new FormData();
         // React Native FormData accepts { uri, name, type } — this is the
         // idiomatic upload pattern for RN.
@@ -19,6 +25,9 @@ export const scansApi = api.injectEndpoints({
           name: fileName,
           type,
         } as unknown as Blob);
+        if (onboarding) {
+          form.append('preferences', JSON.stringify(onboarding));
+        }
         return {
           url: '/scans',
           method: 'POST',

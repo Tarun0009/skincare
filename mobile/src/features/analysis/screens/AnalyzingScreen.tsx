@@ -4,6 +4,8 @@ import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 import { Button, CircleIcon, IconCheck, IconLock, Screen, Text } from '../../../ui/primitives';
 import { palette, radii, spacing } from '../../../ui/theme/tokens';
 import { scanFileStore } from '../../../core/native/fs';
+import { useAppSelector } from '../../../core/hooks/redux';
+import { toOnboardingContext } from '../../onboarding/lib/context';
 import { useCreateScanMutation } from '../api/scansApi';
 import type { RootScreenProps } from '../../../app/navigation/types';
 
@@ -30,7 +32,15 @@ function stateFor(stepIndex: number, active: number): StepState {
 
 export function AnalyzingScreen({ route, navigation }: RootScreenProps<'Analyzing'>) {
   const { photo } = route.params;
+  const onboardingAnswers = useAppSelector((s) => s.onboarding.answers);
   const [createScan] = useCreateScanMutation();
+  // Snapshot the quiz answers once per scan attempt so a mid-flight Redux
+  // change (e.g. from a settings screen) can't switch the personalization
+  // context between retries.
+  const onboardingContext = useMemo(
+    () => toOnboardingContext(onboardingAnswers),
+    [onboardingAnswers]
+  );
   const [activeStep, setActiveStep] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [attempt, setAttempt] = useState(0);
@@ -65,7 +75,7 @@ export function AnalyzingScreen({ route, navigation }: RootScreenProps<'Analyzin
     let cancelled = false;
     (async () => {
       try {
-        const scan = await createScan(photo).unwrap();
+        const scan = await createScan({ ...photo, onboarding: onboardingContext }).unwrap();
         if (cancelled) return;
         await scanFileStore.saveFromUri(scan.id, photo.uri);
         setActiveStep(4);
@@ -79,7 +89,7 @@ export function AnalyzingScreen({ route, navigation }: RootScreenProps<'Analyzin
     return () => {
       cancelled = true;
     };
-  }, [attempt, createScan, navigation, photo]);
+  }, [attempt, createScan, navigation, photo, onboardingContext]);
 
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const elapsedLabel = useMemo(() => {

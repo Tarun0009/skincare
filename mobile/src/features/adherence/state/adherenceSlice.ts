@@ -6,11 +6,19 @@ export type CheckMap = Record<string, string[]>;
 export interface AdherenceState {
   checks: CheckMap;
   streakStart: string | null;
+  /**
+   * True once we've merged the server snapshot into local state on this
+   * app session. Prevents a race where the user toggles offline, then the
+   * server response arrives late and clobbers their toggle. See
+   * `useAdherenceSync` for the hydration contract.
+   */
+  hydrated: boolean;
 }
 
 const initialState: AdherenceState = {
   checks: {},
   streakStart: null,
+  hydrated: false,
 };
 
 export const adherenceSlice = createSlice({
@@ -31,10 +39,30 @@ export const adherenceSlice = createSlice({
         ? Array.from(new Set([...current, stepId]))
         : current.filter((id) => id !== stepId);
     },
+    /**
+     * Server snapshot hydration. Called once on cold boot when we have a
+     * signed-in user. Local pending edits made before hydration are
+     * preserved by unioning: any date the user has already touched locally
+     * this session wins over the server copy.
+     */
+    hydrateAdherence(state, action: PayloadAction<{ serverChecks: CheckMap }>) {
+      const { serverChecks } = action.payload;
+      const merged: CheckMap = { ...serverChecks };
+      for (const [date, ids] of Object.entries(state.checks)) {
+        // If the user already touched this date locally, keep their edit.
+        merged[date] = ids;
+      }
+      state.checks = merged;
+      state.hydrated = true;
+    },
+    /** Wipe everything — called on sign-out and account deletion. */
+    resetAdherence() {
+      return initialState;
+    },
   },
 });
 
-export const { toggleStep, markStep } = adherenceSlice.actions;
+export const { toggleStep, markStep, hydrateAdherence, resetAdherence } = adherenceSlice.actions;
 export default adherenceSlice.reducer;
 
 /** Compute weekly bar values: [Mon..Sun] each 0..1 based on how many of the routine steps got done. */

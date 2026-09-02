@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { useDispatch } from 'react-redux';
 import {
   Button,
   Card,
@@ -16,7 +15,8 @@ import {
 import { palette, spacing } from '../../../ui/theme/tokens';
 import { useAppSelector } from '../../../core/hooks/redux';
 import { useListScansQuery, useGetScanQuery } from '../api/scansApi';
-import { toggleStep, computeStreak, computeWeekProgress } from '../../adherence/state/adherenceSlice';
+import { computeStreak, computeWeekProgress } from '../../adherence/state/adherenceSlice';
+import { useAdherenceSync } from '../../adherence/hooks/useAdherenceSync';
 import type { TabScreenProps } from '../../../app/navigation/types';
 
 const RESCAN_CYCLE_DAYS = 28;
@@ -62,10 +62,10 @@ function weekdayInitial(date: Date): string {
 }
 
 export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
-  const dispatch = useDispatch();
   const email = useAppSelector((s) => s.auth.email);
   const userName = (email ?? '').split('@')[0] || 'you';
   const checks = useAppSelector((s) => s.adherence.checks);
+  const { toggleStep } = useAdherenceSync();
 
   const now = useMemo(() => new Date(), []);
   const g = useMemo(() => greetingFor(now), [now]);
@@ -209,7 +209,7 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
                 return (
                   <Pressable
                     key={stepId}
-                    onPress={() => dispatch(toggleStep({ date: todayKey, stepId }))}
+                    onPress={() => toggleStep(todayKey, stepId)}
                   >
                     <Card tone={done ? 'default' : 'elevated'} padding={16}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>

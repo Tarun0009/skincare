@@ -4,8 +4,13 @@ import Svg, { Circle, Polyline } from 'react-native-svg';
 import { Card, Divider, Screen, Skeleton, SkeletonCard, Text } from '../../../ui/primitives';
 import { palette, spacing } from '../../../ui/theme/tokens';
 import { useCompareLatestQuery, useListScansQuery } from '../../analysis/api/scansApi';
+import { BeforeAfterPanel } from '../../analysis/components/BeforeAfterPanel';
 import { CONDITION_LABEL, type ConditionType } from '@shared/types';
 import type { TabScreenProps } from '../../../app/navigation/types';
+
+function formatShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
 
 const CONDITION_ORDER: ConditionType[] = [
   'acne',
@@ -75,79 +80,21 @@ export function HistoryScreen(_props: TabScreenProps<'History'>) {
           </Text>
         </View>
 
-        {/* Before/After panel */}
+        {/* Before/After panel — real photos from Cloudinary */}
         {scans.length >= 2 && (
           <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xl }}>
-            <View
-              style={{
-                position: 'relative',
-                height: 222,
-                borderRadius: 18,
-                overflow: 'hidden',
-                borderWidth: 1,
-                borderColor: palette.hairlineStrong,
-                flexDirection: 'row',
+            <BeforeAfterPanel
+              before={{
+                photoUrl: first.thumbnailUrl,
+                dateLabel: formatShortDate(first.createdAt),
+                scoreLabel: String(first.overallScore),
               }}
-            >
-              <View
-                style={{
-                  width: '52%',
-                  backgroundColor: '#3E342A',
-                  justifyContent: 'flex-end',
-                  padding: 12,
-                }}
-              >
-                <Text variant="labelSm" tone="muted" upper>
-                  {new Date(first.createdAt).toLocaleDateString(undefined, {
-                    day: 'numeric',
-                    month: 'short',
-                  })} · {first.overallScore}
-                </Text>
-              </View>
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: '#4A4034',
-                  justifyContent: 'flex-end',
-                  alignItems: 'flex-end',
-                  padding: 12,
-                }}
-              >
-                <Text variant="labelSm" tone="muted" upper>
-                  {new Date(latest.createdAt).toLocaleDateString(undefined, {
-                    day: 'numeric',
-                    month: 'short',
-                  })} · {latest.overallScore}
-                </Text>
-              </View>
-              <View
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  bottom: 0,
-                  left: '52%',
-                  width: 2,
-                  backgroundColor: palette.cream,
-                }}
-              />
-              <View
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '52%',
-                  marginLeft: -19,
-                  marginTop: -19,
-                  width: 38,
-                  height: 38,
-                  borderRadius: 999,
-                  backgroundColor: palette.cream,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Text style={{ color: palette.bg, fontWeight: '700' }}>↔</Text>
-              </View>
-            </View>
+              after={{
+                photoUrl: latest.thumbnailUrl,
+                dateLabel: formatShortDate(latest.createdAt),
+                scoreLabel: String(latest.overallScore),
+              }}
+            />
           </View>
         )}
 
