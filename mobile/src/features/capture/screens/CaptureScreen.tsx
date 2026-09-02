@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Linking, Pressable, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +18,10 @@ export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraSession, setCameraSession] = useState(0);
+  // Tracks whether we've already asked the OS this session. On Android a
+  // second denial usually means "Don't ask again" is set and the dialog
+  // won't reappear — that's when we fall back to the settings deep-link.
+  const [hasRequestedThisSession, setHasRequestedThisSession] = useState(false);
   const {
     cameraRef,
     status,
@@ -33,6 +37,13 @@ export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
     return () => subscription.remove();
   }, []);
 
+  const handleRequestCamera = useCallback(async () => {
+    setHasRequestedThisSession(true);
+    await requestPermission();
+  }, [requestPermission]);
+
+  // Auto-fire the OS dialog once on focus if we've never asked. Covers the
+  // fresh-install case; explicit taps handle every other path.
   useEffect(() => {
     if (
       isFocused &&
@@ -40,9 +51,9 @@ export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
       !requestedPermission.current
     ) {
       requestedPermission.current = true;
-      void requestPermission();
+      void handleRequestCamera();
     }
-  }, [isFocused, permissionStatus, requestPermission]);
+  }, [isFocused, permissionStatus, handleRequestCamera]);
 
   const cameraIsActive =
     isFocused && appState === 'active' && hasPermission && device != null;
@@ -258,22 +269,39 @@ export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
           <Text variant="bodySm" tone="muted" align="center" style={{ maxWidth: 280 }}>
             {hint.helper}
           </Text>
-          {!hasPermission && permissionStatus !== 'not-determined' && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open camera permission settings"
-              onPress={() => void Linking.openSettings()}
-              style={{
-                paddingVertical: 10,
-                paddingHorizontal: 16,
-                borderRadius: radii.pill,
-                backgroundColor: palette.cream,
-              }}
-            >
-              <Text variant="label" style={{ color: palette.bgDeep }}>
-                Open settings
-              </Text>
-            </Pressable>
+          {!hasPermission && (
+            <View style={{ alignItems: 'center', gap: 10 }}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  hasRequestedThisSession
+                    ? 'Open camera permission settings'
+                    : 'Allow camera access'
+                }
+                onPress={() =>
+                  hasRequestedThisSession
+                    ? void Linking.openSettings()
+                    : void handleRequestCamera()
+                }
+                style={{
+                  paddingVertical: 10,
+                  paddingHorizontal: 16,
+                  borderRadius: radii.pill,
+                  backgroundColor: palette.cream,
+                }}
+              >
+                <Text variant="label" style={{ color: palette.bgDeep }}>
+                  {hasRequestedThisSession ? 'Open settings' : 'Allow camera access'}
+                </Text>
+              </Pressable>
+              {hasRequestedThisSession && (
+                <Pressable onPress={() => void handleRequestCamera()} hitSlop={6}>
+                  <Text variant="caption" tone="muted">
+                    Try asking again
+                  </Text>
+                </Pressable>
+              )}
+            </View>
           )}
           {hasPermission && cameraError && (
             <Pressable
