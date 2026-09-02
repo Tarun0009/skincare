@@ -18,3 +18,17 @@ CREATE TABLE IF NOT EXISTS scans (
 
 CREATE INDEX IF NOT EXISTS idx_scans_user_created
   ON scans (user_id, created_at DESC);
+
+-- Adherence checks — one row per (user, date). `step_ids` is the set of
+-- completed step identifiers for that date; empty array is valid and means
+-- the user has explicitly cleared all their marks for the day.
+CREATE TABLE IF NOT EXISTS adherence (
+  user_id     TEXT NOT NULL,
+  date        DATE NOT NULL,
+  step_ids    JSONB NOT NULL DEFAULT '[]'::jsonb,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_adherence_user
+  ON adherence (user_id);

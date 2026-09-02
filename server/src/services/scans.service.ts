@@ -8,7 +8,16 @@ import {
   cloudinaryThumbUrl,
 } from './cloudinary.js';
 import { analyzeSelfie, compareScans } from './gemini.js';
-import type { Comparison, Scan, ScanSummary } from '../../../shared/types.js';
+import type {
+  Comparison,
+  OnboardingContext,
+  Scan,
+  ScanSummary,
+} from '../../../shared/types.js';
+
+export interface CreateScanOptions {
+  onboarding?: OnboardingContext;
+}
 
 function toScan(row: ScanRow): Scan {
   // pg with JSONB returns already-parsed objects, so no JSON.parse here.
@@ -47,7 +56,7 @@ async function prepareForUpload(input: Buffer): Promise<Buffer> {
 }
 
 export const scansService = {
-  async create(userId: string, photo: Buffer): Promise<Scan> {
+  async create(userId: string, photo: Buffer, options: CreateScanOptions = {}): Promise<Scan> {
     const scanId = nanoid();
     const prepared = await prepareForUpload(photo);
     const baseline = await scansRepo.findBaseline(userId);
@@ -55,6 +64,7 @@ export const scansService = {
 
     const { analysis, routine } = await analyzeSelfie(prepared, {
       previousBaselineSummary,
+      onboarding: options.onboarding,
     });
 
     // Do not retain failed scans remotely. Upload only after the analysis has

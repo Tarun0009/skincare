@@ -102,3 +102,32 @@ export function cloudinaryThumbUrl(publicId: string): string {
     transformation: [THUMB_TRANSFORMATION],
   });
 }
+
+/**
+ * Best-effort bulk delete for a user's scan photos. Never throws — used from
+ * the account-deletion path where a Cloudinary outage must not block the
+ * primary goal of erasing the user's DB rows and Firebase account. Any
+ * per-asset failures are returned so the caller can log them.
+ */
+export async function destroyPhotosByPublicIds(
+  publicIds: readonly string[]
+): Promise<{ deleted: string[]; failed: string[] }> {
+  const deleted: string[] = [];
+  const failed: string[] = [];
+  if (!cloudinary || publicIds.length === 0) {
+    return { deleted, failed: [...publicIds] };
+  }
+  const client = cloudinary;
+  await Promise.all(
+    publicIds.map(async (id) => {
+      if (!id) return;
+      try {
+        await client.uploader.destroy(id, { resource_type: 'image', invalidate: true });
+        deleted.push(id);
+      } catch {
+        failed.push(id);
+      }
+    })
+  );
+  return { deleted, failed };
+}

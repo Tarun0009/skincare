@@ -41,6 +41,24 @@ export const config = {
     databaseUrl: required('DATABASE_URL'),
     photoMaxBytes: Number(process.env.PHOTO_MAX_BYTES ?? 8 * 1024 * 1024),
   },
+
+  observability: {
+    // Sentry DSN — optional. Boot logs a warning if unset; the server keeps
+    // running so a missing DSN never takes prod down.
+    sentryDsn: process.env.SENTRY_DSN,
+    // Ratio of scan-creation requests captured as Sentry performance
+    // transactions. 0 disables tracing; 1 samples every request.
+    tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0),
+  },
+
+  rateLimit: {
+    // Broad guard covering every route — hard cap on abusive clients per
+    // Firebase UID or IP.
+    globalPerMinute: Number(process.env.RATE_LIMIT_GLOBAL_PER_MINUTE ?? 60),
+    // Tighter cap on the AI-cost endpoint. Twenty scans per hour is far
+    // above real usage and well under the Gemini free-tier quota.
+    scanPerHour: Number(process.env.RATE_LIMIT_SCAN_PER_HOUR ?? 20),
+  },
 } as const;
 
 export type AppConfig = typeof config;

@@ -2,7 +2,12 @@ import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { config } from '../config.js';
 import { buildAnalysisPrompt, SKIN_ANALYSIS_SYSTEM } from '../prompts/skin-analysis.js';
 import { buildComparisonPrompt, COMPARISON_SYSTEM } from '../prompts/comparison.js';
-import type { Routine, SkinAnalysis, Comparison } from '../../../shared/types.js';
+import type {
+  Comparison,
+  OnboardingContext,
+  Routine,
+  SkinAnalysis,
+} from '../../../shared/types.js';
 
 const client = new GoogleGenerativeAI(config.gemini.apiKey);
 
@@ -94,7 +99,10 @@ export interface AnalyzeResult {
 
 export async function analyzeSelfie(
   photo: Buffer,
-  opts: { previousBaselineSummary?: string } = {}
+  opts: {
+    previousBaselineSummary?: string;
+    onboarding?: OnboardingContext;
+  } = {}
 ): Promise<AnalyzeResult> {
   const model = client.getGenerativeModel({
     model: config.gemini.model,

@@ -97,4 +97,21 @@ export const scansRepo = {
     const row = rows[0];
     return row ? rowFromDb(row) : undefined;
   },
+
+  async listPublicIds(userId: string): Promise<string[]> {
+    const { rows } = await pool.query<{ photo_public_id: string }>(
+      `SELECT photo_public_id FROM scans WHERE user_id = $1`,
+      [userId]
+    );
+    // Filter empties — rows created without Cloudinary configured store ''.
+    return rows.map((r) => r.photo_public_id).filter((id) => id.length > 0);
+  },
+
+  async deleteAllByUser(userId: string): Promise<number> {
+    const result = await pool.query(
+      `DELETE FROM scans WHERE user_id = $1`,
+      [userId]
+    );
+    return result.rowCount ?? 0;
+  },
 };

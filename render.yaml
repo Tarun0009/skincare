@@ -25,6 +25,12 @@ services:
         value: selfcare/scans
       - key: PHOTO_MAX_BYTES
         value: "8388608"
+      - key: RATE_LIMIT_GLOBAL_PER_MINUTE
+        value: "60"
+      - key: RATE_LIMIT_SCAN_PER_HOUR
+        value: "20"
+      - key: SENTRY_TRACES_SAMPLE_RATE
+        value: "0.1"
       # Secrets — set these in Render → Environment tab. sync:false tells the
       # Blueprint importer not to try to seed them.
       - key: DATABASE_URL
@@ -38,4 +44,6 @@ services:
       - key: FIREBASE_PRIVATE_KEY
         sync: false
       - key: CLOUDINARY_URL
+        sync: false
+      - key: SENTRY_DSN
         sync: false

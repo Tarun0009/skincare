@@ -88,6 +88,28 @@ export const ALL_CONDITIONS: ConditionType[] = [
   'dark_circles',
 ];
 
+/**
+ * Onboarding-questionnaire answers, normalized for the analysis prompt. The
+ * mobile client builds this from Redux state and sends it alongside the scan
+ * photo. Every field is optional so the server tolerates partial data — a user
+ * who skipped the quiz still gets a valid (less personalized) analysis.
+ */
+export type SelfReportedSkinType = 'dry' | 'combination' | 'oily' | 'normal';
+export type PrimaryConcern = 'acne' | 'pigmentation' | 'aging' | 'sensitivity' | 'unsure';
+export type ActiveHistory = 'retinoid' | 'aha_bha' | 'rx' | 'none';
+export type ReactivityLevel = 'rarely' | 'sometimes' | 'often';
+export type SpfFrequency = 'daily' | 'sometimes' | 'rarely' | 'never';
+export type EightWeekGoal = 'clearer' | 'even' | 'smoother' | 'calmer';
+
+export interface OnboardingContext {
+  selfReportedSkinType?: SelfReportedSkinType;
+  primaryConcerns?: PrimaryConcern[];
+  activeHistory?: ActiveHistory[];
+  reactivity?: ReactivityLevel;
+  spf?: SpfFrequency;
+  goal?: EightWeekGoal;
+}
+
 export const CONDITION_LABEL: Record<ConditionType, string> = {
   acne: 'Acne',
   dryness: 'Dryness',
