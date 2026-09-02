@@ -15,7 +15,7 @@ const dev: Env = {
 };
 
 const prod: Env = {
-  apiBaseUrl: 'https://selfcare-server.onrender.com/',
+  apiBaseUrl: 'https://selfcare-server.onrender.com',
   sentryDsn: '',
 };
 
