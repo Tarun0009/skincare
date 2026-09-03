@@ -32,3 +32,15 @@ CREATE TABLE IF NOT EXISTS adherence (
 
 CREATE INDEX IF NOT EXISTS idx_adherence_user
   ON adherence (user_id);
+
+-- Cache for Amazon Real-Time Data API responses. Keyed by normalized search
+-- query so multiple users benefit from the same cached ingredient lookups.
+-- TTL is enforced at read time by comparing `fetched_at` to NOW().
+CREATE TABLE IF NOT EXISTS amazon_search_cache (
+  query       TEXT PRIMARY KEY,
+  results     JSONB NOT NULL,
+  fetched_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_amazon_cache_fetched
+  ON amazon_search_cache (fetched_at);

@@ -1,7 +1,16 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useDispatch } from 'react-redux';
-import { Button, CircleIcon, IconArrowLeft, IconCheck, Screen, Text } from '../../../ui/primitives';
+import {
+  Button,
+  CircleIcon,
+  FadeIn,
+  IconArrowLeft,
+  IconCheck,
+  PressableScale,
+  Screen,
+  Text,
+} from '../../../ui/primitives';
 import { palette, radii, spacing } from '../../../ui/theme/tokens';
 import { QUIZ_QUESTIONS } from '../data/questions';
 import { completeOnboarding, setAnswer } from '../state/onboardingSlice';
@@ -86,64 +95,66 @@ export function QuizScreen({ navigation }: RootScreenProps<'Quiz'>) {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.lg }}>
-        <Text variant="labelSm" tone="mauve" upper style={{ marginBottom: spacing.md }}>
-          {question.eyebrow}
-        </Text>
-        <Text variant="display3" style={{ marginBottom: spacing.sm }}>
-          {question.title}
-        </Text>
-        {question.subtitle && (
-          <Text variant="body" tone="dim" style={{ marginBottom: spacing.xxl }}>
-            {question.subtitle}
+        <FadeIn key={question.id} slideUp duration={320}>
+          <Text variant="labelSm" tone="mauve" upper style={{ marginBottom: spacing.md }}>
+            {question.eyebrow}
           </Text>
-        )}
+          <Text variant="display3" style={{ marginBottom: spacing.sm }}>
+            {question.title}
+          </Text>
+          {question.subtitle && (
+            <Text variant="body" tone="dim" style={{ marginBottom: spacing.xxl }}>
+              {question.subtitle}
+            </Text>
+          )}
 
-        <View style={{ gap: 11 }}>
-          {question.options.map((opt) => {
-            const isSelected = question.multi
-              ? ((local[question.id] as string[] | undefined) ?? []).includes(opt.value)
-              : local[question.id] === opt.value;
-            return (
-              <Pressable key={opt.value} onPress={() => pick(opt.value)}>
-                <View
-                  style={{
-                    padding: 18,
-                    borderRadius: radii.md,
-                    backgroundColor: isSelected ? palette.surfaceElevated : palette.surface,
-                    borderWidth: isSelected ? 1.5 : 1,
-                    borderColor: isSelected ? palette.cream : palette.hairline,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 14,
-                  }}
-                >
+          <View style={{ gap: spacing.md }}>
+            {question.options.map((opt) => {
+              const isSelected = question.multi
+                ? ((local[question.id] as string[] | undefined) ?? []).includes(opt.value)
+                : local[question.id] === opt.value;
+              return (
+                <PressableScale key={opt.value} onPress={() => pick(opt.value)}>
                   <View
                     style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 999,
-                      backgroundColor: isSelected ? palette.cream : 'transparent',
-                      borderWidth: isSelected ? 0 : 1.5,
-                      borderColor: 'rgba(242,237,228,0.25)',
+                      padding: spacing.lg,
+                      borderRadius: radii.md,
+                      backgroundColor: isSelected ? palette.surfaceElevated : palette.surface,
+                      borderWidth: isSelected ? 1.5 : 1,
+                      borderColor: isSelected ? palette.cream : palette.hairline,
+                      flexDirection: 'row',
                       alignItems: 'center',
-                      justifyContent: 'center',
+                      gap: spacing.md,
                     }}
                   >
-                    {isSelected && <IconCheck size={12} color={palette.bg} />}
+                    <View
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: radii.pill,
+                        backgroundColor: isSelected ? palette.cream : 'transparent',
+                        borderWidth: isSelected ? 0 : 1.5,
+                        borderColor: palette.hairlineStrong,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {isSelected && <IconCheck size={12} color={palette.bg} />}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text variant="labelLg">{opt.label}</Text>
+                      {opt.hint && (
+                        <Text variant="caption" tone={isSelected ? 'muted' : 'dim'} style={{ marginTop: spacing.xxs }}>
+                          {opt.hint}
+                        </Text>
+                      )}
+                    </View>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text variant="labelLg">{opt.label}</Text>
-                    {opt.hint && (
-                      <Text variant="caption" tone={isSelected ? 'muted' : 'dim'} style={{ marginTop: 3 }}>
-                        {opt.hint}
-                      </Text>
-                    )}
-                  </View>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
+                </PressableScale>
+              );
+            })}
+          </View>
+        </FadeIn>
       </ScrollView>
 
       <View style={{ gap: spacing.lg, paddingTop: spacing.md }}>

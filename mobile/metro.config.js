@@ -1,4 +1,5 @@
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
+const { withSentryConfig } = require('@sentry/react-native/metro');
 const path = require('path');
 
 const projectRoot = __dirname;
@@ -21,4 +22,14 @@ const config = {
   },
 };
 
-module.exports = mergeConfig(getDefaultConfig(projectRoot), config);
+module.exports = withSentryConfig(
+  mergeConfig(getDefaultConfig(projectRoot), config),
+  {
+    // This app handles sensitive skin imagery. Do not bundle optional replay
+    // or feedback packages; crash reporting and source maps are sufficient.
+    includeWebReplay: false,
+    includeWebFeedback: false,
+    // SDK options are owned by src/core/observability/sentry.ts.
+    optionsFile: false,
+  },
+);

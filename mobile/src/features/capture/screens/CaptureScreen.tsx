@@ -162,7 +162,7 @@ export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
           }}
         >
           <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
-            <Text variant="labelLg" tone="muted">
+            <Text variant="labelSm" tone="muted" upper>
               Cancel
             </Text>
           </Pressable>
@@ -170,17 +170,17 @@ export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              gap: 7,
-              paddingVertical: 8,
-              paddingHorizontal: 12,
+              gap: spacing.sm,
+              paddingVertical: spacing.sm,
+              paddingHorizontal: spacing.md,
               borderRadius: radii.pill,
               backgroundColor: 'rgba(10,9,8,0.6)',
               borderWidth: 1,
               borderColor: palette.hairlineStrong,
             }}
           >
-            <View style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: palette.sage }} />
-            <Text variant="tiny" tone="muted">
+            <View style={{ width: 6, height: 6, borderRadius: radii.pill, backgroundColor: palette.sage }} />
+            <Text variant="tiny" tone="muted" upper style={{ letterSpacing: 1.2 }}>
               {cameraLabel}
             </Text>
           </View>
@@ -229,7 +229,7 @@ export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
             <Dot left="50%" top={196} centered />
             <Dot left="50%" top={252} centered />
           </View>
-          <Text variant="tiny" tone="faint" style={{ marginTop: spacing.xxl }}>
+          <Text variant="labelSm" tone="faint" upper style={{ marginTop: spacing.xxl }}>
             Face quality is checked after capture
           </Text>
         </View>
@@ -337,15 +337,15 @@ export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
               style={{
                 width: 52,
                 height: 52,
-                borderRadius: 13,
-                backgroundColor: 'rgba(242,237,228,0.08)',
+                borderRadius: radii.md,
+                backgroundColor: palette.hairline,
                 borderWidth: 1,
                 borderColor: palette.hairlineStrong,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Text variant="tiny" tone="muted" align="center">
+              <Text variant="tiny" tone="muted" align="center" upper style={{ letterSpacing: 1 }}>
                 Photo{'\n'}library
               </Text>
             </View>

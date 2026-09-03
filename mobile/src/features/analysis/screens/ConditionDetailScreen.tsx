@@ -3,6 +3,7 @@ import {
   Card,
   Chip,
   CircleIcon,
+  FadeIn,
   IconArrowLeft,
   IconChevronRight,
   Screen,
@@ -58,41 +59,43 @@ export function ConditionDetailScreen({ route, navigation }: RootScreenProps<'Co
   return (
     <Screen edges={['top']} style={{ paddingBottom: 0 }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.huge }}>
-        <View style={{ paddingHorizontal: spacing.xxl, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
           <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
             <CircleIcon size={34} border={palette.hairlineStrong}>
               <IconArrowLeft color={palette.textMuted} />
             </CircleIcon>
           </Pressable>
-          <Text variant="label" tone="muted">
+          <Text variant="labelSm" tone="muted" upper>
             Finding {idx + 1} of {sorted.length}
           </Text>
         </View>
 
-        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xl }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: spacing.sm }}>
-            <Chip tone={bucket.tone} label={bucket.label} />
-            {showConfidence && (
-              <Text variant="caption" tone="dim">
-                Confidence {condition.confidence.toFixed(2)}
-              </Text>
-            )}
+        <FadeIn slideUp>
+          <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xl }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+              <Chip tone={bucket.tone} label={bucket.label} />
+              {showConfidence && (
+                <Text variant="tiny" tone="faint" upper style={{ letterSpacing: 1.2 }}>
+                  Confidence {condition.confidence.toFixed(2)}
+                </Text>
+              )}
+            </View>
+            <Text variant="h1" style={{ letterSpacing: -0.4 }}>
+              {CONDITION_LABEL[condition.type]}
+            </Text>
+            <Text variant="body" tone="muted" style={{ marginTop: spacing.sm }}>
+              {condition.notes || guidance.headline}
+            </Text>
           </View>
-          <Text variant="h1" style={{ letterSpacing: -0.4 }}>
-            {CONDITION_LABEL[condition.type]}
-          </Text>
-          <Text variant="body" tone="muted" style={{ marginTop: spacing.sm }}>
-            {condition.notes || guidance.headline}
-          </Text>
-        </View>
+        </FadeIn>
 
         {/* Silhouette + affected regions */}
         <View
           style={{
             paddingHorizontal: spacing.xxl,
-            paddingTop: spacing.xl,
+            paddingTop: spacing.xxl,
             flexDirection: 'row',
-            gap: 16,
+            gap: spacing.lg,
             alignItems: 'center',
           }}
         >
@@ -123,13 +126,13 @@ export function ConditionDetailScreen({ route, navigation }: RootScreenProps<'Co
           </View>
         </View>
 
-        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xl }}>
-          <Card padding={16}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: spacing.md }}>
+        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xxl }}>
+          <Card padding={spacing.lg}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
               <CircleIcon size={18} border={palette.mauve}>
-                <Text style={{ color: palette.mauve, fontWeight: '700', fontSize: 11 }}>?</Text>
+                <Text variant="tiny" style={{ color: palette.mauve }}>?</Text>
               </CircleIcon>
-              <Text variant="label">Why we flagged this</Text>
+              <Text variant="labelSm" tone="dim" upper>Why we flagged this</Text>
             </View>
             <Text variant="bodySm" tone="muted">
               {guidance.reason}
@@ -137,19 +140,19 @@ export function ConditionDetailScreen({ route, navigation }: RootScreenProps<'Co
           </Card>
         </View>
 
-        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.lg }}>
+        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xxl }}>
           <Text variant="labelSm" tone="dim" upper style={{ marginBottom: spacing.md }}>
             What to target
           </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
             {guidance.targets.map((t) => (
               <View
                 key={t}
                 style={{
-                  paddingVertical: 9,
-                  paddingHorizontal: 13,
+                  paddingVertical: spacing.sm,
+                  paddingHorizontal: spacing.md,
                   borderRadius: radii.sm,
-                  backgroundColor: 'rgba(242,237,228,0.06)',
+                  backgroundColor: palette.hairline,
                 }}
               >
                 <Text variant="caption">{t}</Text>
@@ -158,14 +161,14 @@ export function ConditionDetailScreen({ route, navigation }: RootScreenProps<'Co
           </View>
         </View>
 
-        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xl }}>
-          <Card tone="mauve" padding={16}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xxl }}>
+          <Card tone="mauve" padding={spacing.lg}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
               <View style={{ flex: 1 }}>
                 <Text variant="label" tone="mauve">
                   See a dermatologist
                 </Text>
-                <Text variant="caption" tone="dim" style={{ marginTop: 4 }}>
+                <Text variant="caption" tone="dim" style={{ marginTop: spacing.xs }}>
                   If lesions are painful or scarring, prescription care beats anything here.
                 </Text>
               </View>

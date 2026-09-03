@@ -6,13 +6,15 @@ import {
   Card,
   CircleIcon,
   Divider,
+  FadeIn,
   IconChevronRight,
+  PressableScale,
   Screen,
   Skeleton,
   Text,
   Toggle,
 } from '../../../ui/primitives';
-import { palette, spacing } from '../../../ui/theme/tokens';
+import { palette, radii, spacing } from '../../../ui/theme/tokens';
 import { useAppSelector } from '../../../core/hooks/redux';
 import { scanFileStore } from '../../../core/native/fs';
 import { logout } from '../state/authSlice';
@@ -137,50 +139,54 @@ export function ProfileScreen({ navigation }: TabScreenProps<'Profile'>) {
     <Screen edges={['top']} style={{ paddingBottom: 0 }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.huge }}>
         {/* Identity */}
-        <View
-          style={{
-            paddingHorizontal: spacing.xxl,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 15,
-          }}
-        >
-          <CircleIcon size={58} bg="#251F19" border={palette.hairlineStrong}>
-            <Text variant="h3" tone="muted" style={{ fontSize: 22 }}>
-              {initial}
-            </Text>
-          </CircleIcon>
-          <View style={{ flex: 1 }}>
-            <Text variant="h3">{displayName}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 7 }}>
-              {billing.plan !== 'free' && (
-                <View
-                  style={{
-                    paddingHorizontal: 9,
-                    paddingVertical: 4,
-                    borderRadius: 6,
-                    backgroundColor: 'rgba(176,100,141,0.18)',
-                  }}
-                >
-                  <Text
-                    style={{ color: palette.mauveSoft, fontSize: 9.5, letterSpacing: 0.6, fontWeight: '700' }}
-                  >
-                    {billing.plan.toUpperCase()}
-                  </Text>
-                </View>
-              )}
-              <Text variant="caption" tone="dim">
-                {billing.renewsAt
-                  ? `Renews ${new Date(billing.renewsAt).toLocaleDateString(undefined, {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}`
-                  : 'Free plan'}
+        <FadeIn slideUp>
+          <View
+            style={{
+              paddingHorizontal: spacing.xxl,
+              paddingTop: spacing.sm,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.lg,
+            }}
+          >
+            <CircleIcon size={58} bg="#251F19" border={palette.hairlineStrong}>
+              <Text variant="h3" tone="muted" style={{ fontSize: 22 }}>
+                {initial}
               </Text>
+            </CircleIcon>
+            <View style={{ flex: 1 }}>
+              <Text variant="h3">{displayName}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
+                {billing.plan !== 'free' && (
+                  <View
+                    style={{
+                      paddingHorizontal: spacing.sm,
+                      paddingVertical: spacing.xxs,
+                      borderRadius: radii.xs,
+                      backgroundColor: palette.mauveTint,
+                    }}
+                  >
+                    <Text
+                      variant="tiny"
+                      style={{ color: palette.mauveSoft, letterSpacing: 1.2 }}
+                    >
+                      {billing.plan.toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+                <Text variant="caption" tone="dim">
+                  {billing.renewsAt
+                    ? `Renews ${new Date(billing.renewsAt).toLocaleDateString(undefined, {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}`
+                    : 'Free plan'}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
+        </FadeIn>
 
         {/* Stats */}
         <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xxl }}>
@@ -415,20 +421,20 @@ function LinkRow({
   onPress?: () => void;
 }) {
   return (
-    <Pressable onPress={onPress}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13, padding: 16 }}>
+    <PressableScale onPress={onPress} scaleTo={0.985}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg }}>
         <View style={{ flex: 1 }}>
           <Text variant="labelLg" tone={destructive ? 'coral' : 'default'}>
             {title}
           </Text>
           {body && (
-            <Text variant="caption" tone="dim" style={{ marginTop: 4 }}>
+            <Text variant="caption" tone="dim" style={{ marginTop: spacing.xs }}>
               {body}
             </Text>
           )}
         </View>
         <IconChevronRight color={palette.textFaint} />
       </View>
-    </Pressable>
+    </PressableScale>
   );
 }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
-import { Button, Input, Screen, Text } from '../../../ui/primitives';
+import { Button, FadeIn, Input, Screen, Text } from '../../../ui/primitives';
 import { spacing } from '../../../ui/theme/tokens';
 import { createAccountWithEmail, friendlyAuthError } from '../lib/firebase';
 import type { AuthScreenProps } from '../../../app/navigation/types';
@@ -67,21 +67,23 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
         <ScrollView
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', gap: spacing.xxl }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', gap: spacing.xxxl }}
         >
-          <View style={{ gap: spacing.md }}>
-            <Text variant="labelSm" tone="mauve" upper>
-              Skin Analyzer
-            </Text>
-            <Text variant="display2" style={{ letterSpacing: -0.6 }}>
-              Start your baseline
-            </Text>
-            <Text variant="bodyLg" tone="muted">
-              One scan tells you where you stand. Tracking is what tells you if anything is working.
-            </Text>
-          </View>
+          <FadeIn slideUp duration={450}>
+            <View style={{ gap: spacing.md }}>
+              <Text variant="labelSm" tone="mauve" upper>
+                Skin Analyzer
+              </Text>
+              <Text variant="display2" style={{ letterSpacing: -0.6 }}>
+                Start your baseline
+              </Text>
+              <Text variant="bodyLg" tone="muted">
+                One scan tells you where you stand. Tracking is what tells you if anything is working.
+              </Text>
+            </View>
+          </FadeIn>
 
-          <View style={{ gap: spacing.lg }}>
+          <FadeIn delay={120} style={{ gap: spacing.lg }}>
             <Input
               label="Email"
               value={email}
@@ -126,9 +128,9 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
                 {remoteError}
               </Text>
             )}
-          </View>
+          </FadeIn>
 
-          <View style={{ gap: spacing.lg }}>
+          <FadeIn delay={200} style={{ gap: spacing.lg }}>
             <Button
               label="Create account"
               loading={submitting}
@@ -140,7 +142,7 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
                 I already have an account
               </Text>
             </Pressable>
-          </View>
+          </FadeIn>
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>

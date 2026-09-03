@@ -51,15 +51,16 @@ export function ScanResultScreen({ route, navigation }: RootScreenProps<'ScanRes
         <View
           style={{
             paddingHorizontal: spacing.xxl,
+            paddingTop: spacing.sm,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
           }}
         >
-          <Text variant="bodySm" tone="dim">
+          <Text variant="labelSm" tone="dim" upper>
             Scan · {created}
           </Text>
-          <Text variant="label" tone="mauve">
+          <Text variant="labelSm" tone="mauve" upper>
             Share
           </Text>
         </View>
@@ -68,23 +69,23 @@ export function ScanResultScreen({ route, navigation }: RootScreenProps<'ScanRes
         <View
           style={{
             paddingHorizontal: spacing.xxl,
-            paddingTop: spacing.xl,
+            paddingTop: spacing.xxl,
             flexDirection: 'row',
             alignItems: 'center',
             gap: spacing.xxl,
           }}
         >
-          <ProgressRing value={data.analysis.overallScore} size={124} stroke={9}>
+          <ProgressRing value={data.analysis.overallScore} size={128} stroke={8}>
             <View style={{ alignItems: 'center' }}>
-              <Text variant="display3" style={{ fontSize: 42 }}>
+              <Text variant="display3" style={{ fontSize: 44 }}>
                 {data.analysis.overallScore}
               </Text>
-              <Text variant="labelSm" tone="dim" upper style={{ marginTop: 4 }}>
+              <Text variant="tiny" tone="faint" upper style={{ marginTop: spacing.xs, letterSpacing: 1.4 }}>
                 of 100
               </Text>
             </View>
           </ProgressRing>
-          <View style={{ flex: 1, gap: 11 }}>
+          <View style={{ flex: 1, gap: spacing.md }}>
             <Text variant="h3">{formatSkinType(data.analysis.skinType)}</Text>
             {summarySnippet !== '' && <Chip tone="sage" label={summarySnippet.slice(0, 32)} />}
             <Text variant="caption" tone="dim">
@@ -94,28 +95,28 @@ export function ScanResultScreen({ route, navigation }: RootScreenProps<'ScanRes
         </View>
 
         {/* Findings header */}
-        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xxl }}>
+        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.huge }}>
           <View
             style={{
               flexDirection: 'row',
               alignItems: 'baseline',
               justifyContent: 'space-between',
-              marginBottom: spacing.md,
+              marginBottom: spacing.lg,
             }}
           >
             <Text variant="labelSm" tone="dim" upper>
               Findings
             </Text>
             {showConfidence && conditions.length > 0 && (
-              <Text variant="caption" tone="dim">
+              <Text variant="tiny" tone="faint" upper style={{ letterSpacing: 1.2 }}>
                 Confidence {avgConfidence.toFixed(2)}
               </Text>
             )}
           </View>
 
-          <View style={{ gap: spacing.lg }}>
+          <View style={{ gap: spacing.xl }}>
             {conditions.length === 0 ? (
-              <Card tone="dashed" padding={20}>
+              <Card tone="dashed" padding={spacing.xl}>
                 <Text tone="muted">Nothing flagged in this scan.</Text>
               </Card>
             ) : (
@@ -140,11 +141,11 @@ export function ScanResultScreen({ route, navigation }: RootScreenProps<'ScanRes
                         }}
                       >
                         <Text variant="labelLg">{CONDITION_LABEL[c.type]}</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 9 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm }}>
                           <Text variant="label" style={{ color: toneColor(bucket.tone) }}>
                             {bucket.label}
                           </Text>
-                          <Text variant="caption" tone="dim">
+                          <Text variant="tiny" tone="faint">
                             {severityScore(c.severity)}
                           </Text>
                         </View>
@@ -163,18 +164,27 @@ export function ScanResultScreen({ route, navigation }: RootScreenProps<'ScanRes
           </View>
         </View>
 
-        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xxl }}>
+        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.huge }}>
           <Divider />
           <Text variant="caption" tone="faint" style={{ paddingTop: spacing.md }}>
             Not a medical diagnosis. Skin Analyzer is a cosmetic guidance tool.
           </Text>
         </View>
 
-        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.lg }}>
-          <Button label="See my routine" onPress={() => navigation.navigate('MainTabs')} />
+        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xl }}>
+          <Button
+            label="See my routine"
+            onPress={() =>
+              // Navigate through the nested tab navigator to the Routine
+              // tab explicitly. Without the { screen } payload, React
+              // Navigation lands on the last-focused tab (usually Capture,
+              // since we came from there via Analyzing → ScanResult).
+              navigation.navigate('MainTabs', { screen: 'Routine' })
+            }
+          />
           <Pressable
             onPress={() => navigation.navigate('Comparison')}
-            style={{ alignSelf: 'center', marginTop: spacing.lg, flexDirection: 'row', gap: 6 }}
+            style={{ alignSelf: 'center', marginTop: spacing.xl, flexDirection: 'row', gap: spacing.sm }}
           >
             <Text variant="label" tone="mauve">
               Compare to my baseline

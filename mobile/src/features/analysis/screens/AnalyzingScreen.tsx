@@ -156,9 +156,9 @@ export function AnalyzingScreen({ route, navigation }: RootScreenProps<'Analyzin
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 14,
-                paddingVertical: 15,
-                paddingHorizontal: 4,
+                gap: spacing.md,
+                paddingVertical: spacing.md + 3,
+                paddingHorizontal: spacing.xs,
                 borderTopWidth: i === 0 ? 0 : 1,
                 borderTopColor: palette.hairline,
                 opacity: state === 'pending' ? 0.45 : 1,
@@ -199,8 +199,10 @@ export function AnalyzingScreen({ route, navigation }: RootScreenProps<'Analyzin
               </Text>
               {s.meta ? (
                 <Text
-                  variant="caption"
+                  variant="tiny"
                   tone={state === 'active' ? 'mauve' : 'faint'}
+                  upper
+                  style={{ letterSpacing: 1.2 }}
                 >
                   {s.meta}
                 </Text>
@@ -229,12 +231,12 @@ export function AnalyzingScreen({ route, navigation }: RootScreenProps<'Analyzin
 
       <View
         style={{
-          padding: 15,
+          padding: spacing.lg,
           borderRadius: radii.md,
           backgroundColor: palette.surfaceSubtle,
           flexDirection: 'row',
           alignItems: 'flex-start',
-          gap: 11,
+          gap: spacing.md,
         }}
       >
         <View style={{ marginTop: 2 }}>

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { ScrollView, View } from 'react-native';
 import Svg, { Circle, Polyline } from 'react-native-svg';
-import { Card, Divider, Screen, Skeleton, SkeletonCard, Text } from '../../../ui/primitives';
+import { Card, Divider, FadeIn, Screen, Skeleton, SkeletonCard, Text } from '../../../ui/primitives';
 import { palette, spacing } from '../../../ui/theme/tokens';
 import { useCompareLatestQuery, useListScansQuery } from '../../analysis/api/scansApi';
 import { BeforeAfterPanel } from '../../analysis/components/BeforeAfterPanel';
@@ -71,36 +71,43 @@ export function HistoryScreen(_props: TabScreenProps<'History'>) {
   return (
     <Screen edges={['top']} style={{ paddingBottom: 0 }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.huge }}>
-        <View style={{ paddingHorizontal: spacing.xxl }}>
-          <Text variant="h1">
-            {weeksBetween ? `${weeksBetween} week${weeksBetween === 1 ? '' : 's'}` : 'One scan'}
-          </Text>
-          <Text variant="bodySm" tone="dim" style={{ marginTop: 7 }}>
-            {scans.length} scan{scans.length === 1 ? '' : 's'} · same lighting, same angle
-          </Text>
-        </View>
+        <FadeIn slideUp>
+          <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.sm }}>
+            <Text variant="labelSm" tone="dim" upper>
+              Progress
+            </Text>
+            <Text variant="h1" style={{ marginTop: spacing.sm }}>
+              {weeksBetween ? `${weeksBetween} week${weeksBetween === 1 ? '' : 's'}` : 'One scan'}
+            </Text>
+            <Text variant="bodySm" tone="dim" style={{ marginTop: spacing.sm }}>
+              {scans.length} scan{scans.length === 1 ? '' : 's'} · same lighting, same angle
+            </Text>
+          </View>
+        </FadeIn>
 
         {/* Before/After panel — real photos from Cloudinary */}
         {scans.length >= 2 && (
-          <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xl }}>
-            <BeforeAfterPanel
-              before={{
-                photoUrl: first.thumbnailUrl,
-                dateLabel: formatShortDate(first.createdAt),
-                scoreLabel: String(first.overallScore),
-              }}
-              after={{
-                photoUrl: latest.thumbnailUrl,
-                dateLabel: formatShortDate(latest.createdAt),
-                scoreLabel: String(latest.overallScore),
-              }}
-            />
-          </View>
+          <FadeIn delay={100}>
+            <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xxl }}>
+              <BeforeAfterPanel
+                before={{
+                  photoUrl: first.thumbnailUrl,
+                  dateLabel: formatShortDate(first.createdAt),
+                  scoreLabel: String(first.overallScore),
+                }}
+                after={{
+                  photoUrl: latest.thumbnailUrl,
+                  dateLabel: formatShortDate(latest.createdAt),
+                  scoreLabel: String(latest.overallScore),
+                }}
+              />
+            </View>
+          </FadeIn>
         )}
 
         {/* Overall score card + sparkline */}
-        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.lg }}>
-          <Card padding={16}>
+        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xl }}>
+          <Card padding={spacing.lg}>
             <View
               style={{
                 flexDirection: 'row',
@@ -112,8 +119,8 @@ export function HistoryScreen(_props: TabScreenProps<'History'>) {
               <Text variant="labelSm" tone="dim" upper>
                 Overall score
               </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 7 }}>
-                <Text variant="h3" style={{ fontSize: 24 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm }}>
+                <Text variant="numeric">
                   {latest.overallScore}
                 </Text>
                 {comparison && (
@@ -132,11 +139,11 @@ export function HistoryScreen(_props: TabScreenProps<'History'>) {
               style={{
                 flexDirection: 'row',
                 justifyContent: 'space-between',
-                marginTop: 4,
+                marginTop: spacing.xs,
               }}
             >
               {dateLabels.map((d, i) => (
-                <Text key={i} variant="tiny" tone="faint">
+                <Text key={i} variant="tiny" tone="faint" upper style={{ letterSpacing: 1 }}>
                   {d}
                 </Text>
               ))}

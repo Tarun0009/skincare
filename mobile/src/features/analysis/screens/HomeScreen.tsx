@@ -12,7 +12,7 @@ import {
   SkeletonCard,
   Text,
 } from '../../../ui/primitives';
-import { palette, spacing } from '../../../ui/theme/tokens';
+import { palette, radii, spacing } from '../../../ui/theme/tokens';
 import { useAppSelector } from '../../../core/hooks/redux';
 import { useListScansQuery, useGetScanQuery } from '../api/scansApi';
 import { computeStreak, computeWeekProgress } from '../../adherence/state/adherenceSlice';
@@ -114,24 +114,25 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
         <View
           style={{
             paddingHorizontal: spacing.xxl,
+            paddingTop: spacing.sm,
             flexDirection: 'row',
             alignItems: 'flex-end',
             justifyContent: 'space-between',
           }}
         >
           <View style={{ flex: 1 }}>
-            <Text variant="bodySm" tone="dim">
+            <Text variant="labelSm" tone="dim" upper>
               {formatDate(now)}
             </Text>
-            <Text variant="h1" style={{ marginTop: 6 }}>
+            <Text variant="h1" style={{ marginTop: spacing.sm }}>
               {g.label}, {userName}
             </Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
-            <Text variant="h2" tone="cream">
+            <Text variant="display3" tone="cream">
               {String(streak).padStart(2, '0')}
             </Text>
-            <Text variant="labelSm" tone="dim" upper style={{ marginTop: 4 }}>
+            <Text variant="labelSm" tone="dim" upper style={{ marginTop: spacing.xs }}>
               day streak
             </Text>
           </View>
@@ -141,33 +142,38 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
         <View
           style={{
             paddingHorizontal: spacing.xxl,
-            marginTop: spacing.xxl,
+            marginTop: spacing.xxxl,
             flexDirection: 'row',
-            gap: 6,
+            gap: spacing.xs,
           }}
         >
           {week.map(({ date, value }) => {
             const isToday = toDateKey(date) === todayKey;
             const bg =
               value >= 0.99
-                ? 'rgba(147,168,122,0.7)'
+                ? palette.sageTint
                 : value >= 0.5
-                  ? 'rgba(217,162,63,0.55)'
+                  ? palette.goldTint
                   : value > 0
-                    ? 'rgba(217,162,63,0.3)'
-                    : 'rgba(242,237,228,0.06)';
+                    ? 'rgba(217,162,63,0.14)'
+                    : palette.hairline;
             return (
-              <View key={date.toISOString()} style={{ flex: 1, alignItems: 'center', gap: 8 }}>
-                <Text variant="caption" tone={isToday ? 'cream' : 'dim'}>
+              <View key={date.toISOString()} style={{ flex: 1, alignItems: 'center', gap: spacing.sm }}>
+                <Text
+                  variant="tiny"
+                  tone={isToday ? 'cream' : 'faint'}
+                  upper
+                  style={{ letterSpacing: 1.2 }}
+                >
                   {weekdayInitial(date)}
                 </Text>
                 <View
                   style={{
                     width: '100%',
-                    height: 34,
-                    borderRadius: 9,
-                    backgroundColor: isToday ? 'rgba(232,220,196,0.16)' : bg,
-                    borderWidth: isToday ? 1.5 : 0,
+                    height: 42,
+                    borderRadius: radii.xs,
+                    backgroundColor: isToday ? 'rgba(232,220,196,0.14)' : bg,
+                    borderWidth: isToday ? 1 : 0,
                     borderColor: palette.cream,
                   }}
                 />
@@ -177,26 +183,26 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
         </View>
 
         {/* Tonight/Morning steps */}
-        <View style={{ paddingHorizontal: spacing.xxl, marginTop: spacing.xxxl }}>
+        <View style={{ paddingHorizontal: spacing.xxl, marginTop: spacing.huge }}>
           <View
             style={{
               flexDirection: 'row',
               justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: spacing.md,
+              alignItems: 'baseline',
+              marginBottom: spacing.lg,
             }}
           >
             <Text variant="labelSm" tone="dim" upper>
               {g.partOfDay === 'Morning' ? 'This morning' : 'Tonight'} · {routineSteps.length} steps
             </Text>
-            <Text variant="caption" tone="dim">
+            <Text variant="tiny" tone="faint" upper style={{ letterSpacing: 1.2 }}>
               {g.partOfDay === 'Morning' ? 'Evening ahead' : 'Morning done'}
             </Text>
           </View>
 
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: spacing.md }}>
             {isScanLoading &&
-              Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} height={64} />)}
+              Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} height={72} />)}
             {!isScanLoading && routineSteps.length === 0 && (
               <Card tone="dashed">
                 <Text tone="muted">Your latest scan hasn't returned a routine yet.</Text>
@@ -211,21 +217,21 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
                     key={stepId}
                     onPress={() => toggleStep(todayKey, stepId)}
                   >
-                    <Card tone={done ? 'default' : 'elevated'} padding={16}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                    <Card tone={done ? 'default' : 'elevated'} padding={spacing.lg}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
                         <View
                           style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: 999,
+                            width: 22,
+                            height: 22,
+                            borderRadius: radii.pill,
                             backgroundColor: done ? palette.sage : 'transparent',
-                            borderWidth: done ? 0 : 2,
-                            borderColor: palette.cream,
+                            borderWidth: done ? 0 : 1.5,
+                            borderColor: done ? palette.sage : palette.hairlineStrong,
                             alignItems: 'center',
                             justifyContent: 'center',
                           }}
                         >
-                          {done && <IconCheck size={12} color={palette.bg} />}
+                          {done && <IconCheck size={11} color={palette.bg} />}
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text
@@ -237,7 +243,7 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
                             {step.productName}
                           </Text>
                           {step.reason && !done && (
-                            <Text variant="caption" tone="dim" style={{ marginTop: 4 }}>
+                            <Text variant="caption" tone="dim" style={{ marginTop: spacing.xs }}>
                               {step.reason}
                             </Text>
                           )}
@@ -252,15 +258,15 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
           {/* Rescan nudge — only when we know the schedule */}
           {rescanDaysLeft !== null && (
             <Pressable onPress={() => navigation.navigate('Capture')}>
-              <Card tone="mauve" padding={16} style={{ marginTop: spacing.lg }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13 }}>
+              <Card tone="mauve" padding={spacing.lg} style={{ marginTop: spacing.xl }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
                   <View style={{ flex: 1 }}>
                     <Text variant="label" tone="mauve">
                       {rescanDaysLeft === 0
                         ? 'Time for a rescan'
                         : `Rescan in ${rescanDaysLeft} day${rescanDaysLeft === 1 ? '' : 's'}`}
                     </Text>
-                    <Text variant="caption" tone="dim" style={{ marginTop: 4 }}>
+                    <Text variant="caption" tone="dim" style={{ marginTop: spacing.xs }}>
                       Four weeks is the earliest a retinoid shows measurable change.
                     </Text>
                   </View>

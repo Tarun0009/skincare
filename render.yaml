@@ -47,3 +47,5 @@ services:
         sync: false
       - key: SENTRY_DSN
         sync: false
+      - key: RAPIDAPI_KEY
+        sync: false

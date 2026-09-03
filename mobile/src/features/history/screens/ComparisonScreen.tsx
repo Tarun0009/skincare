@@ -1,5 +1,5 @@
 import { ScrollView, View } from 'react-native';
-import { Card, Screen, Skeleton, SkeletonCard, Text } from '../../../ui/primitives';
+import { Card, FadeIn, Screen, Skeleton, SkeletonCard, Text } from '../../../ui/primitives';
 import { spacing } from '../../../ui/theme/tokens';
 import { useCompareLatestQuery, useGetScanQuery } from '../../analysis/api/scansApi';
 import { BeforeAfterPanel } from '../../analysis/components/BeforeAfterPanel';
@@ -44,43 +44,56 @@ export function ComparisonScreen(_props: RootScreenProps<'Comparison'>) {
   return (
     <Screen edges={['top']} style={{ paddingBottom: 0 }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.huge }}>
-        <View style={{ paddingHorizontal: spacing.xxl, gap: spacing.lg }}>
-          <Text variant="h1">Baseline vs. now</Text>
-          <Text variant="body" tone="muted">
-            {data.narrative}
-          </Text>
-
-          {baseline && latest ? (
-            <BeforeAfterPanel
-              before={{
-                photoUrl: baseline.photoUrl,
-                dateLabel: formatShortDate(baseline.createdAt),
-                scoreLabel: String(baseline.analysis.overallScore),
-              }}
-              after={{
-                photoUrl: latest.photoUrl,
-                dateLabel: formatShortDate(latest.createdAt),
-                scoreLabel: String(latest.analysis.overallScore),
-              }}
-            />
-          ) : (
-            <SkeletonCard height={222} />
-          )}
-
-          <Card padding={16}>
-            <Text variant="labelSm" tone="dim" upper style={{ marginBottom: spacing.sm }}>
-              Overall change
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-              <Text variant="h1">
-                {data.improvementScore >= 0 ? '+' : ''}
-                {data.improvementScore}
+        <View style={{ paddingHorizontal: spacing.xxl, gap: spacing.xl }}>
+          <FadeIn slideUp>
+            <View style={{ paddingTop: spacing.sm }}>
+              <Text variant="labelSm" tone="dim" upper>
+                Comparison
               </Text>
-              <Text variant="body" tone="dim">
-                points
+              <Text variant="h1" style={{ marginTop: spacing.sm }}>
+                Baseline vs. now
+              </Text>
+              <Text variant="body" tone="muted" style={{ marginTop: spacing.md }}>
+                {data.narrative}
               </Text>
             </View>
-          </Card>
+          </FadeIn>
+
+          <FadeIn delay={100}>
+            {baseline && latest ? (
+              <BeforeAfterPanel
+                before={{
+                  photoUrl: baseline.photoUrl,
+                  dateLabel: formatShortDate(baseline.createdAt),
+                  scoreLabel: String(baseline.analysis.overallScore),
+                }}
+                after={{
+                  photoUrl: latest.photoUrl,
+                  dateLabel: formatShortDate(latest.createdAt),
+                  scoreLabel: String(latest.analysis.overallScore),
+                }}
+              />
+            ) : (
+              <SkeletonCard height={222} />
+            )}
+          </FadeIn>
+
+          <FadeIn delay={180}>
+            <Card padding={spacing.lg}>
+              <Text variant="labelSm" tone="dim" upper style={{ marginBottom: spacing.sm }}>
+                Overall change
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm }}>
+                <Text variant="h1">
+                  {data.improvementScore >= 0 ? '+' : ''}
+                  {data.improvementScore}
+                </Text>
+                <Text variant="tiny" tone="faint" upper style={{ letterSpacing: 1.2 }}>
+                  points
+                </Text>
+              </View>
+            </Card>
+          </FadeIn>
 
           <View style={{ gap: spacing.md }}>
             <Text variant="labelSm" tone="dim" upper>

@@ -68,21 +68,26 @@ export function RoutineScreen({ navigation }: TabScreenProps<'Routine'>) {
   return (
     <Screen edges={['top']} style={{ paddingBottom: 0 }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.huge }}>
-        <View style={{ paddingHorizontal: spacing.xxl }}>
-          <Text variant="h1">Your routine</Text>
-          <Text variant="bodySm" tone="dim" style={{ marginTop: 7 }}>
+        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.sm }}>
+          <Text variant="labelSm" tone="dim" upper>
+            Daily
+          </Text>
+          <Text variant="h1" style={{ marginTop: spacing.sm }}>
+            Your routine
+          </Text>
+          <Text variant="bodySm" tone="dim" style={{ marginTop: spacing.sm }}>
             Built from your latest scan · rescan after four weeks
           </Text>
         </View>
 
         {/* AM/PM segmented */}
-        <View style={{ paddingHorizontal: spacing.xxl, marginTop: spacing.xl }}>
+        <View style={{ paddingHorizontal: spacing.xxl, marginTop: spacing.xxl }}>
           <View
             style={{
               flexDirection: 'row',
-              padding: 4,
+              padding: spacing.xs,
               borderRadius: radii.md,
-              backgroundColor: 'rgba(242,237,228,0.06)',
+              backgroundColor: palette.hairline,
             }}
           >
             <SegTab label="Morning" active={tab === 'am'} onPress={() => setTab('am')} />
@@ -93,8 +98,8 @@ export function RoutineScreen({ navigation }: TabScreenProps<'Routine'>) {
         {/* Warnings */}
         {scan.routine.warnings.length > 0 && (
           <View style={{ paddingHorizontal: spacing.xxl, marginTop: spacing.lg }}>
-            <Card tone="mauve" padding={14}>
-              <Text variant="label" tone="mauve" style={{ marginBottom: 6 }}>
+            <Card tone="mauve" padding={spacing.lg}>
+              <Text variant="labelSm" tone="mauve" upper style={{ marginBottom: spacing.sm }}>
                 Heads-up
               </Text>
               {scan.routine.warnings.map((w, i) => (
@@ -107,9 +112,9 @@ export function RoutineScreen({ navigation }: TabScreenProps<'Routine'>) {
         )}
 
         {/* Steps */}
-        <View style={{ paddingHorizontal: spacing.xxl, marginTop: spacing.xl, gap: 12 }}>
+        <View style={{ paddingHorizontal: spacing.xxl, marginTop: spacing.xxl, gap: spacing.md }}>
           {steps.length === 0 ? (
-            <Card tone="dashed" padding={20}>
+            <Card tone="dashed" padding={spacing.xl}>
               <Text tone="muted">
                 Nothing scheduled for {tab === 'am' ? 'morning' : 'evening'} in this scan.
               </Text>
@@ -129,18 +134,18 @@ export function RoutineScreen({ navigation }: TabScreenProps<'Routine'>) {
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  paddingVertical: 14,
-                  paddingHorizontal: 16,
+                  paddingVertical: spacing.md,
+                  paddingHorizontal: spacing.lg,
                   borderRadius: radii.md,
-                  backgroundColor: 'rgba(242,237,228,0.04)',
-                  marginTop: spacing.xs,
+                  backgroundColor: palette.hairline,
+                  marginTop: spacing.sm,
                 }}
               >
-                <Text variant="label" tone="muted">
-                  {steps.length} steps · about {totalMinutes} minute{totalMinutes === 1 ? '' : 's'}
+                <Text variant="labelSm" tone="dim" upper>
+                  {steps.length} steps · {totalMinutes} min{totalMinutes === 1 ? '' : 's'}
                 </Text>
                 <Pressable onPress={() => navigation.navigate('Products')}>
-                  <Text variant="label" tone="mauve">
+                  <Text variant="labelSm" tone="mauve" upper>
                     Find products
                   </Text>
                 </Pressable>
@@ -175,47 +180,46 @@ function SegTab({ label, active, onPress }: { label: string; active: boolean; on
 function StepCard({ step, index, isSpfMust }: { step: RoutineStep; index: number; isSpfMust: boolean }) {
   const isHighlight = isSpfMust;
   return (
-    <Card tone={isHighlight ? 'elevated' : 'default'} padding={16}>
-      <View style={{ flexDirection: 'row', gap: 14 }}>
+    <Card tone={isHighlight ? 'elevated' : 'default'} padding={spacing.lg}>
+      <View style={{ flexDirection: 'row', gap: spacing.md }}>
         <Text
+          variant="numeric"
           style={{
-            width: 26,
-            fontSize: 20,
-            color: isHighlight ? palette.cream : palette.textDim,
-            paddingTop: 2,
+            width: 24,
+            color: isHighlight ? palette.cream : palette.textFaint,
           }}
         >
           {index}
         </Text>
         <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
             <Text variant="labelLg" style={{ flexShrink: 1 }}>
               {step.productName}
             </Text>
             {isSpfMust && (
               <View
                 style={{
-                  paddingHorizontal: 7,
+                  paddingHorizontal: spacing.sm,
                   paddingVertical: 3,
-                  borderRadius: 5,
+                  borderRadius: radii.xs,
                   backgroundColor: palette.cream,
                 }}
               >
-                <Text style={{ color: palette.bg, fontSize: 9, letterSpacing: 0.6, fontWeight: '700' }}>
+                <Text variant="tiny" style={{ color: palette.bg, fontSize: 9, letterSpacing: 1.2 }}>
                   MUST
                 </Text>
               </View>
             )}
           </View>
           {step.ingredientsToLookFor.length > 0 && (
-            <Text variant="caption" tone="dim" style={{ marginTop: 4 }}>
+            <Text variant="caption" tone="dim" style={{ marginTop: spacing.xs }}>
               {step.ingredientsToLookFor.join(' · ')}
             </Text>
           )}
           {step.reason && (
             <Text
               variant="caption"
-              style={{ marginTop: 7, color: isHighlight ? palette.cream : palette.sageSoft }}
+              style={{ marginTop: spacing.sm, color: isHighlight ? palette.cream : palette.sageSoft }}
             >
               {step.reason}
             </Text>

@@ -1,44 +1,50 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
-import { Button, Card, Screen, SkeletonCard, Text } from '../../../ui/primitives';
+import { Image, Linking, Pressable, ScrollView, View } from 'react-native';
+import { Card, FadeIn, PressableScale, Screen, SkeletonCard, Text } from '../../../ui/primitives';
 import { palette, radii, spacing } from '../../../ui/theme/tokens';
-import { useListScansQuery, useGetScanQuery } from '../../analysis/api/scansApi';
-import { matchProducts, type ScoredProduct } from '../lib/match';
-import { CONDITION_LABEL } from '@shared/types';
+import { useListScansQuery } from '../../analysis/api/scansApi';
+import { useProductsForScanQuery, type RecommendedProduct } from '../api/productsApi';
 import type { RootScreenProps } from '../../../app/navigation/types';
 
-type FilterKey = 'budget' | 'fragrance_free' | 'drugstore' | 'owned';
+type FilterKey = 'budget' | 'high_rated' | 'many_reviews';
 
 const FILTER_LABEL: Record<FilterKey, string> = {
   budget: 'Under $25',
-  fragrance_free: 'Fragrance-free',
-  drugstore: 'Drugstore',
-  owned: 'Already own',
+  high_rated: '4★ and up',
+  many_reviews: '1,000+ reviews',
 };
 
+function priceAsNumber(price: string): number | null {
+  const match = price.match(/[\d.]+/);
+  return match ? Number(match[0]) : null;
+}
+
 export function ProductsScreen({ navigation }: RootScreenProps<'Products'>) {
-  const [filters, setFilters] = useState<Set<FilterKey>>(new Set(['budget']));
-  const { data: list, isLoading: isListLoading } = useListScansQuery();
+  const [filters, setFilters] = useState<Set<FilterKey>>(new Set());
+
+  const { data: list } = useListScansQuery();
   const latest = list?.scans[0];
-  const { data: scan, isLoading: isScanLoading } = useGetScanQuery(latest?.id ?? '', {
+  const { data, isLoading, isFetching } = useProductsForScanQuery(latest?.id ?? '', {
     skip: !latest,
   });
 
-  const matches = useMemo<ScoredProduct[]>(() => {
-    if (!scan) return [];
-    return matchProducts(scan.analysis.conditions, scan.routine);
-  }, [scan]);
+  const products = useMemo(() => data?.products ?? [], [data]);
 
   const filtered = useMemo(() => {
-    return matches.filter((p) => {
-      if (filters.has('budget') && p.price >= 25) return false;
-      if (filters.has('fragrance_free') && !p.fragranceFree) return false;
-      if (filters.has('drugstore') && !p.drugstore) return false;
+    return products.filter((p) => {
+      if (filters.has('budget')) {
+        const price = priceAsNumber(p.price);
+        if (price === null || price >= 25) return false;
+      }
+      if (filters.has('high_rated')) {
+        if (p.starRating === null || p.starRating < 4) return false;
+      }
+      if (filters.has('many_reviews')) {
+        if (p.numRatings === null || p.numRatings < 1000) return false;
+      }
       return true;
     });
-  }, [matches, filters]);
-
-  const totalPrice = filtered.slice(0, 4).reduce((s, p) => s + p.price, 0);
+  }, [products, filters]);
 
   const toggle = (f: FilterKey) => {
     const next = new Set(filters);
@@ -47,25 +53,38 @@ export function ProductsScreen({ navigation }: RootScreenProps<'Products'>) {
     setFilters(next);
   };
 
+  const showSkeletons = isLoading || (isFetching && products.length === 0);
+
   return (
     <Screen edges={['top']} style={{ paddingBottom: 0 }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.huge }}>
-        <View style={{ paddingHorizontal: spacing.xxl }}>
-          <Pressable onPress={() => navigation.goBack()}>
-            <Text variant="label" tone="mauve" style={{ marginBottom: spacing.md }}>
-              ← Back
+        <FadeIn slideUp>
+          <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.sm }}>
+            <Pressable onPress={() => navigation.goBack()}>
+              <Text variant="labelSm" tone="mauve" upper style={{ marginBottom: spacing.md }}>
+                ← Back
+              </Text>
+            </Pressable>
+            <Text variant="labelSm" tone="dim" upper>
+              Live from Amazon
             </Text>
-          </Pressable>
-          <Text variant="h1">Matched products</Text>
-          <Text variant="bodySm" tone="dim" style={{ marginTop: 7 }}>
-            Ranked against your findings and budget
-          </Text>
-        </View>
+            <Text variant="h1" style={{ marginTop: spacing.sm }}>
+              Matched products
+            </Text>
+            <Text variant="bodySm" tone="dim" style={{ marginTop: spacing.sm }}>
+              Real listings pulled per routine step · not paid rankings
+            </Text>
+          </View>
+        </FadeIn>
 
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: spacing.xxl, gap: 8, paddingTop: spacing.lg }}
+          contentContainerStyle={{
+            paddingHorizontal: spacing.xxl,
+            gap: spacing.sm,
+            paddingTop: spacing.xl,
+          }}
         >
           {(Object.keys(FILTER_LABEL) as FilterKey[]).map((k) => {
             const active = filters.has(k);
@@ -73,10 +92,10 @@ export function ProductsScreen({ navigation }: RootScreenProps<'Products'>) {
               <Pressable key={k} onPress={() => toggle(k)}>
                 <View
                   style={{
-                    paddingVertical: 8,
-                    paddingHorizontal: 12,
+                    paddingVertical: spacing.sm,
+                    paddingHorizontal: spacing.md,
                     borderRadius: radii.pill,
-                    backgroundColor: active ? palette.cream : 'rgba(242,237,228,0.06)',
+                    backgroundColor: active ? palette.cream : palette.hairline,
                   }}
                 >
                   <Text variant="tiny" style={{ color: active ? palette.bg : palette.textMuted }}>
@@ -88,126 +107,132 @@ export function ProductsScreen({ navigation }: RootScreenProps<'Products'>) {
           })}
         </ScrollView>
 
-        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xl, gap: 12 }}>
-          {(isListLoading || isScanLoading) &&
+        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xl, gap: spacing.md }}>
+          {showSkeletons &&
             Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} height={110} />)}
-          {!isListLoading && !isScanLoading && filtered.length === 0 && (
-            <Card tone="dashed" padding={20}>
-              <Text tone="muted">Nothing matches those filters. Try loosening the budget.</Text>
+
+          {!showSkeletons && filtered.length === 0 && (
+            <Card tone="dashed" padding={spacing.xl}>
+              <Text tone="muted">
+                {products.length === 0
+                  ? 'No matches yet. Take a scan first, or the Amazon API might be rate-limited.'
+                  : 'Nothing matches those filters — try loosening them.'}
+              </Text>
             </Card>
           )}
-          {!isListLoading && !isScanLoading && filtered.map((p) => (
-            <ProductRow key={p.id} product={p} />
-          ))}
+
+          {!showSkeletons && filtered.map((p) => <ProductRow key={p.asin} product={p} />)}
 
           {filtered.length > 0 && (
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingVertical: 14,
-                paddingHorizontal: 16,
-                borderRadius: radii.md,
-                backgroundColor: 'rgba(242,237,228,0.04)',
-                marginTop: spacing.xs,
-              }}
-            >
-              <View>
-                <Text variant="label">Full routine, top 4 products</Text>
-                <Text variant="caption" tone="dim" style={{ marginTop: 5 }}>
-                  ${totalPrice.toFixed(2)} · about 3 months
-                </Text>
-              </View>
-              <Button label="Add all" full={false} style={{ paddingVertical: 10, paddingHorizontal: 15 }} />
-            </View>
+            <Text variant="caption" tone="faint" style={{ marginTop: spacing.sm }}>
+              Prices shown are live from Amazon. Ranking is not paid for.
+            </Text>
           )}
-
-          <Text variant="caption" tone="faint" style={{ marginTop: spacing.sm }}>
-            Some links are affiliate links. Ranking is not paid for.
-          </Text>
         </View>
       </ScrollView>
     </Screen>
   );
 }
 
-function ProductRow({ product }: { product: ScoredProduct }) {
-  const overBudget = product.price >= 25;
-  const matchTone =
-    product.matchPercent >= 85 ? 'sage' : product.matchPercent >= 70 ? 'gold' : 'coral';
+function ProductRow({ product }: { product: RecommendedProduct }) {
+  const openOnAmazon = () => {
+    if (product.productUrl) {
+      void Linking.openURL(product.productUrl).catch(() => undefined);
+    }
+  };
 
   return (
-    <Card padding={16}>
-      <View style={{ flexDirection: 'row', gap: 14 }}>
-        <View
-          style={{
-            width: 64,
-            height: 78,
-            borderRadius: radii.sm,
-            backgroundColor: '#2C251E',
-            borderWidth: 1,
-            borderColor: palette.hairline,
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            paddingBottom: 6,
-          }}
-        >
-          <Text variant="tiny" tone="faint" style={{ fontSize: 8 }}>
-            photo
-          </Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text variant="caption" tone="dim">
-              {product.brand}
-            </Text>
+    <PressableScale
+      onPress={openOnAmazon}
+      accessibilityRole="link"
+      accessibilityLabel={`Open ${product.title} on Amazon`}
+    >
+      <Card padding={spacing.lg}>
+        <View style={{ flexDirection: 'row', gap: spacing.md }}>
+          <ProductImage imageUrl={product.imageUrl} category={product.matchedStep.category} />
+          <View style={{ flex: 1 }}>
             <View
               style={{
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                borderRadius: 6,
-                backgroundColor: matchTone === 'sage' ? 'rgba(147,168,122,0.16)' : matchTone === 'gold' ? 'rgba(217,162,63,0.16)' : 'rgba(212,103,74,0.16)',
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                gap: spacing.sm,
               }}
             >
               <Text
-                variant="tiny"
-                style={{ color: matchTone === 'sage' ? palette.sageSoft : matchTone === 'gold' ? palette.goldSoft : palette.coralSoft, fontWeight: '700' }}
+                variant="labelSm"
+                tone="dim"
+                upper
+                style={{ flex: 1, letterSpacing: 1.2 }}
               >
-                {product.matchPercent}% match
+                {product.matchedStep.ingredient || product.matchedStep.category}
               </Text>
+              {product.starRating !== null && (
+                <Text variant="tiny" tone="cream">
+                  ★ {product.starRating.toFixed(1)}
+                </Text>
+              )}
             </View>
-          </View>
-          <Text variant="labelLg" style={{ marginTop: 5 }}>
-            {product.name}
-          </Text>
-          {product.matchedConditions.length > 0 && (
-            <View style={{ flexDirection: 'row', gap: 6, marginTop: 9, flexWrap: 'wrap' }}>
-              {product.matchedConditions.slice(0, 2).map((c) => (
-                <View
-                  key={c}
-                  style={{
-                    paddingHorizontal: 8,
-                    paddingVertical: 4,
-                    borderRadius: 6,
-                    backgroundColor: 'rgba(212,103,74,0.14)',
-                  }}
-                >
-                  <Text variant="tiny" style={{ color: palette.coralSoft }}>
-                    {CONDITION_LABEL[c]}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 10 }}>
-            <Text variant="labelLg">${product.price.toFixed(2)}</Text>
-            <Text variant="caption" tone="dim">
-              {overBudget ? 'Over budget' : product.size}
+            <Text variant="labelLg" style={{ marginTop: spacing.sm }} numberOfLines={2}>
+              {product.title}
             </Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'baseline',
+                gap: spacing.sm,
+                marginTop: spacing.md,
+              }}
+            >
+              <Text variant="labelLg">{product.price || '—'}</Text>
+              {product.numRatings !== null && (
+                <Text variant="caption" tone="dim">
+                  {product.numRatings.toLocaleString()} reviews
+                </Text>
+              )}
+            </View>
           </View>
         </View>
-      </View>
-    </Card>
+      </Card>
+    </PressableScale>
+  );
+}
+
+/**
+ * Real product image with a category-tile fallback. If the Amazon CDN returns
+ * an empty URL or the image fails to load, we render an editorial tile with
+ * the category name — never a broken image.
+ */
+function ProductImage({ imageUrl, category }: { imageUrl: string; category: string }) {
+  const [failed, setFailed] = useState(false);
+  const show = imageUrl.length > 0 && !failed;
+
+  return (
+    <View
+      style={{
+        width: 72,
+        height: 88,
+        borderRadius: radii.sm,
+        backgroundColor: palette.surface,
+        borderWidth: 1,
+        borderColor: palette.hairline,
+        overflow: 'hidden',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {show ? (
+        <Image
+          source={{ uri: imageUrl }}
+          resizeMode="contain"
+          onError={() => setFailed(true)}
+          style={{ width: '100%', height: '100%' }}
+        />
+      ) : (
+        <Text variant="tiny" tone="faint" upper style={{ letterSpacing: 1.4 }}>
+          {category}
+        </Text>
+      )}
+    </View>
   );
 }

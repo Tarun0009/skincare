@@ -59,6 +59,13 @@ export const config = {
     // above real usage and well under the Gemini free-tier quota.
     scanPerHour: Number(process.env.RATE_LIMIT_SCAN_PER_HOUR ?? 20),
   },
+
+  products: {
+    // RapidAPI key for the "Real-Time Amazon Data" API. Empty = feature
+    // silently returns empty results; the app renders an empty state
+    // instead of crashing. Get one at rapidapi.com.
+    rapidApiKey: process.env.RAPIDAPI_KEY ?? '',
+  },
 } as const;
 
 export type AppConfig = typeof config;

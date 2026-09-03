@@ -13,6 +13,7 @@ import { applySchema } from './db/migrate.js';
 import { scanRoutes } from './routes/scans.routes.js';
 import { accountRoutes } from './routes/account.routes.js';
 import { adherenceRoutes } from './routes/adherence.routes.js';
+import { productRoutes } from './routes/products.routes.js';
 import { healthRoutes } from './routes/health.routes.js';
 // Boot Firebase Admin + Cloudinary at startup so a bad config fails fast
 // with a clear error instead of on the first request.
@@ -62,6 +63,7 @@ app.setErrorHandler((err, req, reply) => {
 await app.register(healthRoutes);
 await app.register(scanRoutes);
 await app.register(adherenceRoutes);
+await app.register(productRoutes);
 await app.register(accountRoutes);
 
 try {

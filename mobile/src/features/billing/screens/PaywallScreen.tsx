@@ -5,8 +5,10 @@ import { useDispatch } from 'react-redux';
 import {
   Button,
   CircleIcon,
+  FadeIn,
   IconCheck,
   IconClose,
+  PressableScale,
   Screen,
   Text,
 } from '../../../ui/primitives';
@@ -79,31 +81,33 @@ export function PaywallScreen({ navigation }: RootScreenProps<'Paywall'>) {
           </Pressable>
         </View>
 
-        <Text variant="labelSm" tone="mauve" upper style={{ marginTop: spacing.xxl, marginBottom: spacing.md }}>
-          Pro
-        </Text>
-        <Text variant="display2">You’ve used{'\n'}your free scan</Text>
-        <Text variant="bodyLg" tone="muted" style={{ marginTop: spacing.md, maxWidth: 300 }}>
-          One scan tells you where you stand. Tracking is what tells you if anything is working.
-        </Text>
+        <FadeIn slideUp>
+          <Text variant="labelSm" tone="mauve" upper style={{ marginTop: spacing.xxl, marginBottom: spacing.md }}>
+            Pro
+          </Text>
+          <Text variant="display2">You’ve used{'\n'}your free scan</Text>
+          <Text variant="bodyLg" tone="muted" style={{ marginTop: spacing.md, maxWidth: 300 }}>
+            One scan tells you where you stand. Tracking is what tells you if anything is working.
+          </Text>
+        </FadeIn>
 
-        <View style={{ marginTop: spacing.xxxl, gap: 15 }}>
+        <FadeIn delay={100} style={{ marginTop: spacing.xxxl, gap: spacing.lg }}>
           {BENEFITS.map((b) => (
-            <View key={b.title} style={{ flexDirection: 'row', gap: 13, alignItems: 'flex-start' }}>
-              <CircleIcon size={19} bg="rgba(176,100,141,0.2)" style={{ marginTop: 1 }}>
+            <View key={b.title} style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' }}>
+              <CircleIcon size={19} bg={palette.mauveTint} style={{ marginTop: 1 }}>
                 <IconCheck size={11} color={palette.mauveSoft} />
               </CircleIcon>
               <View style={{ flex: 1 }}>
                 <Text variant="labelLg">{b.title}</Text>
-                <Text variant="caption" tone="dim" style={{ marginTop: 3 }}>
+                <Text variant="caption" tone="dim" style={{ marginTop: spacing.xxs }}>
                   {b.body}
                 </Text>
               </View>
             </View>
           ))}
-        </View>
+        </FadeIn>
 
-        <View style={{ marginTop: spacing.huge, gap: 11 }}>
+        <FadeIn delay={200} style={{ marginTop: spacing.huge, gap: spacing.md }}>
           <PlanOption
             selected={choice === 'yearly'}
             onPress={() => setChoice('yearly')}
@@ -123,7 +127,7 @@ export function PaywallScreen({ navigation }: RootScreenProps<'Paywall'>) {
           <Text variant="caption" tone="faint" align="center">
             Then $59.99/year. Cancel in Settings. Not a medical service.
           </Text>
-        </View>
+        </FadeIn>
       </ScrollView>
     </Screen>
   );
@@ -143,27 +147,27 @@ function PlanOption({
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress}>
+    <PressableScale onPress={onPress}>
       <View
         style={{
-          padding: 16,
+          padding: spacing.lg,
           borderRadius: radii.md,
           backgroundColor: selected ? palette.surfaceElevated : palette.surface,
           borderWidth: selected ? 1.5 : 1,
           borderColor: selected ? palette.cream : palette.hairlineStrong,
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 14,
+          gap: spacing.md,
         }}
       >
         <View
           style={{
             width: 20,
             height: 20,
-            borderRadius: 999,
+            borderRadius: radii.pill,
             backgroundColor: selected ? palette.cream : 'transparent',
             borderWidth: selected ? 0 : 1.5,
-            borderColor: 'rgba(242,237,228,0.25)',
+            borderColor: palette.hairlineStrong,
             alignItems: 'center',
             justifyContent: 'center',
           }}
@@ -172,25 +176,25 @@ function PlanOption({
         </View>
         <View style={{ flex: 1 }}>
           <Text variant="labelLg">{title}</Text>
-          <Text variant="caption" tone="dim" style={{ marginTop: 4 }}>
+          <Text variant="caption" tone="dim" style={{ marginTop: spacing.xs }}>
             {body}
           </Text>
         </View>
         {badge && (
           <View
             style={{
-              paddingHorizontal: 9,
+              paddingHorizontal: spacing.sm,
               paddingVertical: 5,
-              borderRadius: 6,
+              borderRadius: radii.xs,
               backgroundColor: palette.cream,
             }}
           >
-            <Text style={{ color: palette.bg, fontSize: 9.5, letterSpacing: 0.6, fontWeight: '700' }}>
+            <Text variant="tiny" style={{ color: palette.bg, letterSpacing: 1.2 }}>
               {badge}
             </Text>
           </View>
         )}
       </View>
-    </Pressable>
+    </PressableScale>
   );
 }

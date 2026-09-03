@@ -10,4 +10,6 @@ export { Divider } from './Divider';
 export { Toggle } from './Toggle';
 export { CircleIcon } from './CircleIcon';
 export { Skeleton, SkeletonCircle, SkeletonCard } from './Skeleton';
+export { PressableScale } from './PressableScale';
+export { FadeIn } from './FadeIn';
 export * from './Icon';

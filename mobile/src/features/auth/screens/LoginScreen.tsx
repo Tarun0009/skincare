@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
-import { Button, Input, Screen, Text } from '../../../ui/primitives';
+import { Button, FadeIn, Input, Screen, Text } from '../../../ui/primitives';
 import { spacing } from '../../../ui/theme/tokens';
 import { signInWithEmail, friendlyAuthError } from '../lib/firebase';
 import type { AuthScreenProps } from '../../../app/navigation/types';
@@ -46,20 +46,22 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
-        <View style={{ flex: 1, justifyContent: 'center', gap: spacing.xxl }}>
-          <View style={{ gap: spacing.md }}>
-            <Text variant="labelSm" tone="mauve" upper>
-              Skin Analyzer
-            </Text>
-            <Text variant="display2" style={{ letterSpacing: -0.6 }}>
-              Welcome back
-            </Text>
-            <Text variant="bodyLg" tone="muted">
-              Sign in to see your baseline and pick up where you left off.
-            </Text>
-          </View>
+        <View style={{ flex: 1, justifyContent: 'center', gap: spacing.xxxl }}>
+          <FadeIn slideUp duration={450}>
+            <View style={{ gap: spacing.md }}>
+              <Text variant="labelSm" tone="mauve" upper>
+                Skin Analyzer
+              </Text>
+              <Text variant="display2" style={{ letterSpacing: -0.6 }}>
+                Welcome back
+              </Text>
+              <Text variant="bodyLg" tone="muted">
+                Sign in to see your baseline and pick up where you left off.
+              </Text>
+            </View>
+          </FadeIn>
 
-          <View style={{ gap: spacing.lg }}>
+          <FadeIn delay={120} style={{ gap: spacing.lg }}>
             <Input
               label="Email"
               value={email}
@@ -90,9 +92,9 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
                 {remoteError}
               </Text>
             )}
-          </View>
+          </FadeIn>
 
-          <View style={{ gap: spacing.lg }}>
+          <FadeIn delay={200} style={{ gap: spacing.lg }}>
             <Button label="Sign in" loading={submitting} onPress={submit} disabled={submitting} />
             <Pressable
               onPress={() => navigation.navigate('Register')}
@@ -102,7 +104,7 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
                 Create an account
               </Text>
             </Pressable>
-          </View>
+          </FadeIn>
         </View>
       </KeyboardAvoidingView>
     </Screen>
