@@ -13,14 +13,23 @@ export interface ProductRecommendation extends AmazonProduct {
 }
 
 /**
- * Build a search query for one routine step. Prefers the first
- * ingredient-to-look-for (that's the specific active); falls back to the
- * category as a broader search.
+ * Build a search query for one routine step. Strips percentages, ranges and
+ * concentration suffixes so "niacinamide 5-10%" and "niacinamide 10%" both
+ * collapse to "niacinamide serum" — dramatically better cache hit rate on
+ * the RapidAPI free tier (100 req/month).
  */
 function queryForStep(step: RoutineStep): string {
-  const ingredient = step.ingredientsToLookFor[0];
-  if (ingredient) return `${ingredient} ${step.category}`;
-  return `${step.category} skincare`;
+  const raw = step.ingredientsToLookFor[0];
+  if (!raw) return `${step.category} skincare`;
+  const simplified = raw
+    .toLowerCase()
+    .replace(/\d+(\.\d+)?\s*[-–]?\s*\d*(\.\d+)?\s*%/g, '') // strip "5%", "5-10%", "0.1%"
+    .replace(/\b(low|mid|high|max)\b/g, '')
+    .replace(/[()]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const finalIngredient = simplified.length > 0 ? simplified : raw.toLowerCase();
+  return `${finalIngredient} ${step.category}`;
 }
 
 export async function productRoutes(app: FastifyInstance) {
@@ -52,20 +61,22 @@ export async function productRoutes(app: FastifyInstance) {
       if (!uniqueQueries.has(q)) uniqueQueries.set(q, step);
     }
 
-    const recommendations: ProductRecommendation[] = [];
-    for (const [query, step] of uniqueQueries) {
-      const products = await searchAmazon(query);
-      for (const p of products) {
-        recommendations.push({
+    // Run independent searches together. Sequential 8-second upstream calls
+    // could exceed the client's request timeout for a normal multi-step routine.
+    const groups = await Promise.all(
+      [...uniqueQueries].map(async ([query, step]) => {
+        const products = await searchAmazon(query);
+        return products.map((p) => ({
           ...p,
           matchedStep: {
             order: step.order,
             category: step.category,
             ingredient: step.ingredientsToLookFor[0] ?? '',
           },
-        });
-      }
-    }
+        }));
+      })
+    );
+    const recommendations: ProductRecommendation[] = groups.flat();
 
     return { products: recommendations };
   });

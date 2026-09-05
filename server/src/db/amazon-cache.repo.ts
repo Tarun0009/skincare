@@ -1,7 +1,11 @@
 import { pool } from './index.js';
 import type { AmazonProduct } from '../services/amazon.js';
 
-const TTL_HOURS = 24;
+// 30 days. RapidAPI's free tier is 100 req/mo; a longer TTL means an
+// ingredient looked up once effectively never re-hits the upstream this
+// month. Product listings on Amazon don't churn fast enough for this to
+// look wrong to users.
+const TTL_HOURS = 24 * 30;
 
 export const amazonCacheRepo = {
   /**
@@ -15,6 +19,17 @@ export const amazonCacheRepo = {
          FROM amazon_search_cache
         WHERE query = $1
           AND fetched_at > NOW() - INTERVAL '${TTL_HOURS} hours'`,
+      [query]
+    );
+    return rows[0]?.results;
+  },
+
+  /** Return an expired entry when the upstream API is unavailable. */
+  async getStale(query: string): Promise<AmazonProduct[] | undefined> {
+    const { rows } = await pool.query<{ results: AmazonProduct[] }>(
+      `SELECT results
+         FROM amazon_search_cache
+        WHERE query = $1`,
       [query]
     );
     return rows[0]?.results;
