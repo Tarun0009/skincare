@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { useDispatch } from 'react-redux';
 import {
   Button,
@@ -14,12 +14,16 @@ import {
 import { palette, radii, spacing } from '../../../ui/theme/tokens';
 import { QUIZ_QUESTIONS } from '../data/questions';
 import { completeOnboarding, setAnswer } from '../state/onboardingSlice';
+import { useAppSelector } from '../../../core/hooks/redux';
+import { secureStorage } from '../../../core/storage/secure';
 import type { RootScreenProps } from '../../../app/navigation/types';
 
 export function QuizScreen({ navigation }: RootScreenProps<'Quiz'>) {
   const dispatch = useDispatch();
+  const userId = useAppSelector((state) => state.auth.uid);
   const [step, setStep] = useState(0);
   const [local, setLocal] = useState<Record<string, string | string[]>>({});
+  const [saving, setSaving] = useState(false);
   const total = QUIZ_QUESTIONS.length;
   const question = QUIZ_QUESTIONS[Math.min(step, total - 1)]!;
   const answer = local[question.id];
@@ -41,12 +45,29 @@ export function QuizScreen({ navigation }: RootScreenProps<'Quiz'>) {
     }
   };
 
+  const finish = async (answers: Record<string, string | string[]>) => {
+    if (!userId || saving) return;
+    setSaving(true);
+    try {
+      await secureStorage.saveOnboarding(userId, { answers, completed: true });
+      dispatch(completeOnboarding());
+    } catch {
+      Alert.alert(
+        'Could not save your preferences',
+        'Your answers are still here. Please try again so onboarding stays completed next time.'
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const advance = () => {
+    const nextAnswers = { ...local, [question.id]: answer! };
     dispatch(setAnswer({ questionId: question.id, value: answer! }));
     if (step === total - 1) {
       // RootNavigator swaps this screen for MainTabs when `onboarding.completed`
       // flips — no manual navigate/replace needed.
-      dispatch(completeOnboarding());
+      void finish(nextAnswers);
     } else {
       setStep(step + 1);
     }
@@ -58,7 +79,7 @@ export function QuizScreen({ navigation }: RootScreenProps<'Quiz'>) {
   };
 
   const skip = () => {
-    dispatch(completeOnboarding());
+    void finish(local);
   };
 
   return (
@@ -158,8 +179,8 @@ export function QuizScreen({ navigation }: RootScreenProps<'Quiz'>) {
       </ScrollView>
 
       <View style={{ gap: spacing.lg, paddingTop: spacing.md }}>
-        <Button label="Continue" disabled={!isAnswered} onPress={advance} />
-        <Pressable onPress={skip} style={{ alignSelf: 'center' }}>
+        <Button label="Continue" disabled={!isAnswered} loading={saving} onPress={advance} />
+        <Pressable disabled={saving} onPress={skip} style={{ alignSelf: 'center' }}>
           <Text variant="label" tone="dim">
             Skip quiz — scan first
           </Text>

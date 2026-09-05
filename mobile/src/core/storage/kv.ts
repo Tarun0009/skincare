@@ -8,5 +8,4 @@ export const kv = new MMKV({ id: 'selfcare.kv' });
 
 export const KV_KEYS = {
   lastRoutineDismissedAt: 'lastRoutineDismissedAt',
-  onboardingCompleted: 'onboardingCompleted',
 } as const;

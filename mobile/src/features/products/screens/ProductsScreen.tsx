@@ -2,39 +2,46 @@ import { useMemo, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, View } from 'react-native';
 import { Card, FadeIn, PressableScale, Screen, SkeletonCard, Text } from '../../../ui/primitives';
 import { palette, radii, spacing } from '../../../ui/theme/tokens';
-import { useListScansQuery } from '../../analysis/api/scansApi';
 import { useProductsForScanQuery, type RecommendedProduct } from '../api/productsApi';
 import type { RootScreenProps } from '../../../app/navigation/types';
 
 type FilterKey = 'budget' | 'high_rated' | 'many_reviews';
 
 const FILTER_LABEL: Record<FilterKey, string> = {
-  budget: 'Under $25',
+  budget: 'Under ₹2,000',
   high_rated: '4★ and up',
   many_reviews: '1,000+ reviews',
 };
 
+const BUDGET_MAX_INR = 2000;
+
+/**
+ * Extracts the numeric price from the currency-formatted string Amazon
+ * returns (e.g. "₹1,234.00" or "$14.99"). Commas are stripped so INR
+ * thousands separators don't truncate the parse.
+ */
 function priceAsNumber(price: string): number | null {
-  const match = price.match(/[\d.]+/);
-  return match ? Number(match[0]) : null;
+  const match = price.match(/[\d.,]+/);
+  if (!match) return null;
+  const numeric = Number(match[0].replace(/,/g, ''));
+  return Number.isFinite(numeric) ? numeric : null;
 }
 
-export function ProductsScreen({ navigation }: RootScreenProps<'Products'>) {
+export function ProductsScreen({ navigation, route }: RootScreenProps<'Products'>) {
   const [filters, setFilters] = useState<Set<FilterKey>>(new Set());
 
-  const { data: list } = useListScansQuery();
-  const latest = list?.scans[0];
-  const { data, isLoading, isFetching } = useProductsForScanQuery(latest?.id ?? '', {
-    skip: !latest,
-  });
+  const { data, error, isLoading, isFetching, refetch } = useProductsForScanQuery(
+    route.params.scanId
+  );
 
   const products = useMemo(() => data?.products ?? [], [data]);
+  const hasSearchFallbacks = products.some((product) => product.listingType === 'search');
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
       if (filters.has('budget')) {
         const price = priceAsNumber(p.price);
-        if (price === null || price >= 25) return false;
+        if (price === null || price >= BUDGET_MAX_INR) return false;
       }
       if (filters.has('high_rated')) {
         if (p.starRating === null || p.starRating < 4) return false;
@@ -54,6 +61,7 @@ export function ProductsScreen({ navigation }: RootScreenProps<'Products'>) {
   };
 
   const showSkeletons = isLoading || (isFetching && products.length === 0);
+  const hasBlockingError = Boolean(error) && products.length === 0;
 
   return (
     <Screen edges={['top']} style={{ paddingBottom: 0 }}>
@@ -66,13 +74,15 @@ export function ProductsScreen({ navigation }: RootScreenProps<'Products'>) {
               </Text>
             </Pressable>
             <Text variant="labelSm" tone="dim" upper>
-              Live from Amazon
+              Amazon product discovery
             </Text>
             <Text variant="h1" style={{ marginTop: spacing.sm }}>
               Matched products
             </Text>
             <Text variant="bodySm" tone="dim" style={{ marginTop: spacing.sm }}>
-              Real listings pulled per routine step · not paid rankings
+              {hasSearchFallbacks
+                ? 'Personalized searches for every routine step · not paid rankings'
+                : 'Real listings pulled per routine step · not paid rankings'}
             </Text>
           </View>
         </FadeIn>
@@ -111,21 +121,41 @@ export function ProductsScreen({ navigation }: RootScreenProps<'Products'>) {
           {showSkeletons &&
             Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} height={110} />)}
 
-          {!showSkeletons && filtered.length === 0 && (
+          {!showSkeletons && hasBlockingError && (
+            <Card tone="dashed" padding={spacing.xl}>
+              <Text tone="muted">We couldn't load your product matches.</Text>
+              <Pressable onPress={refetch} style={{ alignSelf: 'flex-start', marginTop: spacing.md }}>
+                <Text variant="label" tone="mauve">
+                  Try again
+                </Text>
+              </Pressable>
+            </Card>
+          )}
+
+          {!showSkeletons && !hasBlockingError && filtered.length === 0 && (
             <Card tone="dashed" padding={spacing.xl}>
               <Text tone="muted">
                 {products.length === 0
-                  ? 'No matches yet. Take a scan first, or the Amazon API might be rate-limited.'
+                  ? 'This routine has no product steps to match yet.'
                   : 'Nothing matches those filters — try loosening them.'}
               </Text>
             </Card>
           )}
 
-          {!showSkeletons && filtered.map((p) => <ProductRow key={p.asin} product={p} />)}
+          {!showSkeletons &&
+            !hasBlockingError &&
+            filtered.map((p) => (
+              <ProductRow
+                key={`${p.matchedStep.order}-${p.matchedStep.category}-${p.asin}`}
+                product={p}
+              />
+            ))}
 
           {filtered.length > 0 && (
             <Text variant="caption" tone="faint" style={{ marginTop: spacing.sm }}>
-              Prices shown are live from Amazon. Ranking is not paid for.
+              {hasSearchFallbacks
+                ? 'Some cards open a personalized Amazon search when live listings are unavailable.'
+                : 'Prices shown are live from Amazon. Ranking is not paid for.'}
             </Text>
           )}
         </View>
@@ -135,6 +165,7 @@ export function ProductsScreen({ navigation }: RootScreenProps<'Products'>) {
 }
 
 function ProductRow({ product }: { product: RecommendedProduct }) {
+  const isSearch = product.listingType === 'search';
   const openOnAmazon = () => {
     if (product.productUrl) {
       void Linking.openURL(product.productUrl).catch(() => undefined);
@@ -145,7 +176,7 @@ function ProductRow({ product }: { product: RecommendedProduct }) {
     <PressableScale
       onPress={openOnAmazon}
       accessibilityRole="link"
-      accessibilityLabel={`Open ${product.title} on Amazon`}
+      accessibilityLabel={`${isSearch ? 'Search for' : 'Open'} ${product.title} on Amazon`}
     >
       <Card padding={spacing.lg}>
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
@@ -184,7 +215,7 @@ function ProductRow({ product }: { product: RecommendedProduct }) {
                 marginTop: spacing.md,
               }}
             >
-              <Text variant="labelLg">{product.price || '—'}</Text>
+              <Text variant="labelLg">{product.price || (isSearch ? 'Browse options' : '—')}</Text>
               {product.numRatings !== null && (
                 <Text variant="caption" tone="dim">
                   {product.numRatings.toLocaleString()} reviews

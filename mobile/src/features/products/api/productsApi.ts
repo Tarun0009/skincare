@@ -13,6 +13,7 @@ export interface RecommendedProduct {
   productUrl: string;
   starRating: number | null;
   numRatings: number | null;
+  listingType?: 'product' | 'search';
   matchedStep: {
     order: number;
     category: string;
@@ -23,7 +24,11 @@ export interface RecommendedProduct {
 export const productsApi = api.injectEndpoints({
   endpoints: (build) => ({
     productsForScan: build.query<{ products: RecommendedProduct[] }, string>({
-      query: (scanId) => ({ url: `/products/for-scan/${scanId}` }),
+      query: (scanId) => ({
+        url: `/products/for-scan/${scanId}`,
+        // Several upstream Amazon searches may be required for one routine.
+        timeout: 35_000,
+      }),
     }),
   }),
 });

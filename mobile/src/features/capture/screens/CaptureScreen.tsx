@@ -11,9 +11,10 @@ import type { TabScreenProps } from '../../../app/navigation/types';
 
 export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
   const isFocused = useIsFocused();
-  const { hasPermission, permissionStatus, requestPermission } = useCameraPermissionState();
+  const { hasPermission, requestPermission } = useCameraPermissionState();
   const device = useFrontCamera();
-  const requestedPermission = useRef(false);
+  const autoPermissionAttempted = useRef(false);
+  const permissionRequestInFlight = useRef(false);
   const [appState, setAppState] = useState(AppState.currentState);
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -38,22 +39,29 @@ export function CaptureScreen({ navigation }: TabScreenProps<'Capture'>) {
   }, []);
 
   const handleRequestCamera = useCallback(async () => {
+    if (permissionRequestInFlight.current) return;
+    permissionRequestInFlight.current = true;
     setHasRequestedThisSession(true);
-    await requestPermission();
+    try {
+      await requestPermission();
+    } finally {
+      permissionRequestInFlight.current = false;
+    }
   }, [requestPermission]);
 
-  // Auto-fire the OS dialog once on focus if we've never asked. Covers the
-  // fresh-install case; explicit taps handle every other path.
+  // Ask once every time this tab becomes active. The OS decides whether it can
+  // show its native dialog; when permission is permanently denied, the screen
+  // keeps the Settings fallback visible instead of looping requests.
   useEffect(() => {
-    if (
-      isFocused &&
-      permissionStatus === 'not-determined' &&
-      !requestedPermission.current
-    ) {
-      requestedPermission.current = true;
+    if (!isFocused) {
+      autoPermissionAttempted.current = false;
+      return;
+    }
+    if (!hasPermission && !autoPermissionAttempted.current) {
+      autoPermissionAttempted.current = true;
       void handleRequestCamera();
     }
-  }, [isFocused, permissionStatus, handleRequestCamera]);
+  }, [isFocused, hasPermission, handleRequestCamera]);
 
   const cameraIsActive =
     isFocused && appState === 'active' && hasPermission && device != null;

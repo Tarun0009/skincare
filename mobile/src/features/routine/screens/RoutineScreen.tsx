@@ -144,7 +144,7 @@ export function RoutineScreen({ navigation }: TabScreenProps<'Routine'>) {
                 <Text variant="labelSm" tone="dim" upper>
                   {steps.length} steps · {totalMinutes} min{totalMinutes === 1 ? '' : 's'}
                 </Text>
-                <Pressable onPress={() => navigation.navigate('Products')}>
+                <Pressable onPress={() => navigation.navigate('Products', { scanId: scan.id })}>
                   <Text variant="labelSm" tone="mauve" upper>
                     Find products
                   </Text>

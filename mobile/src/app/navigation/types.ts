@@ -23,7 +23,7 @@ export type RootStackParamList = {
   ScanResult: { scanId: string };
   ConditionDetail: { scanId: string; conditionType: ConditionType };
   Comparison: undefined;
-  Products: undefined;
+  Products: { scanId: string };
   Paywall: undefined;
 };
 

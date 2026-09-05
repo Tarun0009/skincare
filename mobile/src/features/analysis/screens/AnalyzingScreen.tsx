@@ -47,6 +47,37 @@ export function AnalyzingScreen({ route, navigation }: RootScreenProps<'Analyzin
   const [uploadError, setUploadError] = useState<string | null>(null);
   const startedAt = useRef(Date.now()).current;
   const spin = useRef(new Animated.Value(0)).current;
+  // Three concentric pulse rings — staggered radar/sonar effect that gives
+  // the screen a premium "AI is actively scanning" feel without noise.
+  const pulse0 = useRef(new Animated.Value(0)).current;
+  const pulse1 = useRef(new Animated.Value(0)).current;
+  const pulse2 = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = (val: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(val, {
+            toValue: 1,
+            duration: 2400,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+    const a = loop(pulse0, 0);
+    const b = loop(pulse1, 800);
+    const c = loop(pulse2, 1600);
+    a.start();
+    b.start();
+    c.start();
+    return () => {
+      a.stop();
+      b.stop();
+      c.stop();
+    };
+  }, [pulse0, pulse1, pulse2]);
 
   useEffect(() => {
     Animated.loop(
@@ -102,6 +133,11 @@ export function AnalyzingScreen({ route, navigation }: RootScreenProps<'Analyzin
     <Screen edges={['top', 'bottom']} style={{ paddingHorizontal: spacing.xxl, paddingBottom: spacing.xxl }}>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 30 }}>
         <View style={{ width: 190, height: 190, alignItems: 'center', justifyContent: 'center' }}>
+          {/* Three concentric pulse rings — sonar sweep, uses palette mauve */}
+          <PulseRing anim={pulse0} />
+          <PulseRing anim={pulse1} />
+          <PulseRing anim={pulse2} />
+
           <Svg width={190} height={190} style={{ position: 'absolute' }}>
             <Defs>
               <LinearGradient id="face" x1="0" y1="0" x2="1" y2="1">
@@ -248,6 +284,31 @@ export function AnalyzingScreen({ route, navigation }: RootScreenProps<'Analyzin
         </Text>
       </View>
     </Screen>
+  );
+}
+
+/**
+ * Single concentric ring that expands from the face-shape outward and fades
+ * out. Combined with two staggered siblings this creates a continuous sonar
+ * sweep. Native-driver only — no JS-thread work per frame.
+ */
+function PulseRing({ anim }: { anim: Animated.Value }) {
+  const scale = anim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.65] });
+  const opacity = anim.interpolate({ inputRange: [0, 0.05, 1], outputRange: [0, 0.55, 0] });
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        width: 190,
+        height: 190,
+        borderRadius: 95,
+        borderWidth: 1.5,
+        borderColor: palette.mauve,
+        opacity,
+        transform: [{ scale }],
+      }}
+    />
   );
 }
 

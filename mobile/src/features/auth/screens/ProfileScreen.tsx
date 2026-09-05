@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { Alert, ScrollView, View } from 'react-native';
 import { useDispatch } from 'react-redux';
 import RNFS from 'react-native-fs';
 import {
@@ -26,6 +26,7 @@ import { ReminderTimeRow } from '../../preferences/components/ReminderTimeRow';
 import { cancelAll as cancelReminders } from '../../../core/notifications/reminders';
 import { computeStreak, resetAdherence } from '../../adherence/state/adherenceSlice';
 import { useListScansQuery } from '../../analysis/api/scansApi';
+import { secureStorage } from '../../../core/storage/secure';
 import type { TabScreenProps } from '../../../app/navigation/types';
 
 const AM_PRESETS = [
@@ -44,6 +45,7 @@ const PM_PRESETS = [
 
 export function ProfileScreen({ navigation }: TabScreenProps<'Profile'>) {
   const dispatch = useDispatch();
+  const userId = useAppSelector((s) => s.auth.uid);
   const email = useAppSelector((s) => s.auth.email);
   const preferences = useAppSelector((s) => s.preferences);
   const billing = useAppSelector((s) => s.billing);
@@ -99,6 +101,7 @@ export function ProfileScreen({ navigation }: TabScreenProps<'Profile'>) {
               // local cleanup that revokes the cached ID token. It'll fail
               // silently if Firebase reports "user-not-found" — that's fine.
               await signOutCurrentUser().catch(() => undefined);
+              if (userId) await secureStorage.clearOnboarding(userId).catch(() => undefined);
               dispatch(logout());
               dispatch(resetAdherence());
               await cancelReminders().catch(() => undefined);
@@ -138,83 +141,108 @@ export function ProfileScreen({ navigation }: TabScreenProps<'Profile'>) {
   return (
     <Screen edges={['top']} style={{ paddingBottom: 0 }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.huge }}>
-        {/* Identity */}
+        {/* HERO — bigger avatar, display-size name, plan chip anchored right */}
         <FadeIn slideUp>
-          <View
-            style={{
-              paddingHorizontal: spacing.xxl,
-              paddingTop: spacing.sm,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: spacing.lg,
-            }}
-          >
-            <CircleIcon size={58} bg="#251F19" border={palette.hairlineStrong}>
-              <Text variant="h3" tone="muted" style={{ fontSize: 22 }}>
-                {initial}
-              </Text>
-            </CircleIcon>
-            <View style={{ flex: 1 }}>
-              <Text variant="h3">{displayName}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
-                {billing.plan !== 'free' && (
-                  <View
-                    style={{
-                      paddingHorizontal: spacing.sm,
-                      paddingVertical: spacing.xxs,
-                      borderRadius: radii.xs,
-                      backgroundColor: palette.mauveTint,
-                    }}
-                  >
-                    <Text
-                      variant="tiny"
-                      style={{ color: palette.mauveSoft, letterSpacing: 1.2 }}
-                    >
-                      {billing.plan.toUpperCase()}
-                    </Text>
-                  </View>
-                )}
-                <Text variant="caption" tone="dim">
-                  {billing.renewsAt
-                    ? `Renews ${new Date(billing.renewsAt).toLocaleDateString(undefined, {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}`
-                    : 'Free plan'}
+          <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.sm }}>
+            <Text variant="labelSm" tone="dim" upper>
+              Account
+            </Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.lg,
+                marginTop: spacing.lg,
+              }}
+            >
+              <View
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: radii.pill,
+                  backgroundColor: palette.surfaceElevated,
+                  borderWidth: 1,
+                  borderColor: palette.hairlineStrong,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text variant="h2" tone="cream">
+                  {initial}
                 </Text>
               </View>
+              <View style={{ flex: 1 }}>
+                <Text variant="h2" numberOfLines={1}>
+                  {displayName}
+                </Text>
+                {email && (
+                  <Text variant="caption" tone="dim" numberOfLines={1} style={{ marginTop: spacing.xs }}>
+                    {email}
+                  </Text>
+                )}
+              </View>
+              {billing.plan !== 'free' && (
+                <View
+                  style={{
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: spacing.xs,
+                    borderRadius: radii.pill,
+                    backgroundColor: palette.mauveTint,
+                    borderWidth: 1,
+                    borderColor: palette.mauve,
+                  }}
+                >
+                  <Text
+                    variant="tiny"
+                    upper
+                    style={{ color: palette.mauveSoft, letterSpacing: 1.4 }}
+                  >
+                    {billing.plan}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text variant="caption" tone="faint" style={{ marginTop: spacing.md }}>
+              {billing.renewsAt
+                ? `Renews ${new Date(billing.renewsAt).toLocaleDateString(undefined, {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}`
+                : 'Free plan · upgrade for unlimited scans'}
+            </Text>
+          </View>
+        </FadeIn>
+
+        {/* STATS — bank-statement style, dividers between, big serif numerals */}
+        <FadeIn delay={100}>
+          <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xxxl }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 0,
+              }}
+            >
+              {isListLoading ? (
+                <Skeleton width={40} height={28} />
+              ) : (
+                <HeroStat n={String(scans.length)} label="Scans" />
+              )}
+              <StatSpacer />
+              <HeroStat n={String(streak)} label="Day streak" tone="mauve" />
+              <StatSpacer />
+              {photosOnDevice ? (
+                <HeroStat n={photosSizeLabel ?? '—'} label="Storage" />
+              ) : (
+                <Skeleton width={40} height={28} />
+              )}
             </View>
           </View>
         </FadeIn>
 
-        {/* Stats */}
-        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xxl }}>
-          <Card padding={18}>
-            <View style={{ flexDirection: 'row', gap: 22 }}>
-              {isListLoading ? (
-                <Skeleton width={40} height={22} />
-              ) : (
-                <Stat n={String(scans.length)} label="Scans" />
-              )}
-              <Stat n={String(streak)} label="Day streak" />
-              {photosOnDevice ? (
-                <>
-                  <Stat n={String(totalPhotos)} label="Photos" />
-                  <Stat n={photosSizeLabel ?? '—'} label="On device" small />
-                </>
-              ) : (
-                <>
-                  <Skeleton width={40} height={22} />
-                  <Skeleton width={50} height={22} />
-                </>
-              )}
-            </View>
-          </Card>
-        </View>
-
         {/* Photos & privacy */}
-        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xxl }}>
+        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.huge }}>
           <Text variant="labelSm" tone="dim" upper style={{ marginBottom: spacing.md }}>
             Photos &amp; privacy
           </Text>
@@ -251,7 +279,7 @@ export function ProfileScreen({ navigation }: TabScreenProps<'Profile'>) {
         </View>
 
         {/* Reminders */}
-        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xxl }}>
+        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.huge }}>
           <Text variant="labelSm" tone="dim" upper style={{ marginBottom: spacing.md }}>
             Reminders
           </Text>
@@ -298,7 +326,7 @@ export function ProfileScreen({ navigation }: TabScreenProps<'Profile'>) {
         </View>
 
         {/* Subscription */}
-        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.xxl }}>
+        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: spacing.huge }}>
           <Text variant="labelSm" tone="dim" upper style={{ marginBottom: spacing.md }}>
             Subscription
           </Text>
@@ -370,16 +398,42 @@ function formatBytes(bytes: number): string {
   return `${mb.toFixed(mb < 10 ? 1 : 0)}MB`;
 }
 
-function Stat({ n, label, small }: { n: string; label: string; small?: boolean }) {
+/**
+ * Bank-statement style stat — big serif numeral over a tiny uppercase label.
+ * Reserves consistent width so three of them line up cleanly with spacers.
+ */
+function HeroStat({ n, label, tone }: { n: string; label: string; tone?: 'mauve' }) {
   return (
-    <View>
-      <Text variant="h3" style={{ fontSize: small ? 20 : 24 }}>
+    <View style={{ flex: 1, alignItems: 'flex-start' }}>
+      <Text
+        variant="display3"
+        style={{ fontSize: 34, color: tone === 'mauve' ? palette.mauveSoft : palette.text }}
+      >
         {n}
       </Text>
-      <Text variant="tiny" tone="dim" style={{ marginTop: 6 }}>
+      <Text
+        variant="tiny"
+        tone="faint"
+        upper
+        style={{ marginTop: spacing.xs, letterSpacing: 1.4 }}
+      >
         {label}
       </Text>
     </View>
+  );
+}
+
+/** Thin vertical hairline between stats. */
+function StatSpacer() {
+  return (
+    <View
+      style={{
+        width: 1,
+        height: 32,
+        backgroundColor: palette.hairlineStrong,
+        marginHorizontal: spacing.lg,
+      }}
+    />
   );
 }
 
@@ -395,11 +449,11 @@ function ToggleRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13, padding: 16 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg }}>
       <View style={{ flex: 1 }}>
         <Text variant="labelLg">{title}</Text>
         {body && (
-          <Text variant="caption" tone="dim" style={{ marginTop: 4 }}>
+          <Text variant="caption" tone="dim" style={{ marginTop: spacing.xs }}>
             {body}
           </Text>
         )}

@@ -111,21 +111,21 @@ export function PaywallScreen({ navigation }: RootScreenProps<'Paywall'>) {
           <PlanOption
             selected={choice === 'yearly'}
             onPress={() => setChoice('yearly')}
-            title="Yearly · $59.99"
-            body="$5.00/mo · save 50%"
+            title="Yearly · ₹499"
+            body="₹41/mo · save 30%"
             badge="BEST"
           />
           <PlanOption
             selected={choice === 'monthly'}
             onPress={() => setChoice('monthly')}
-            title="Monthly · $9.99"
+            title="Monthly · ₹50"
             body="Cancel anytime"
           />
           <View style={{ marginTop: spacing.xs }}>
             <Button label="Start 7-day free trial" onPress={startTrial} />
           </View>
           <Text variant="caption" tone="faint" align="center">
-            Then $59.99/year. Cancel in Settings. Not a medical service.
+            Then ₹499/year. Cancel in Settings. Not a medical service.
           </Text>
         </FadeIn>
       </ScrollView>
